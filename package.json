@@ -1,6 +1,7 @@
 {
   "name": "wildhacks26",
   "version": "1.0.0",
+  "type": "module",
   "private": true,
   "workspaces": [
     "client",
@@ -13,9 +14,13 @@
     "build": "npm run build -w client",
     "fetch:steam-top5000": "node scripts/fetch-steam-top5000.mjs",
     "filter:filter-tags": "node scripts/filter_tags.mjs",
-    "build:recommendation-table": "node scripts/build-recommendation-table.mjs"
+    "build:recommendation-table": "node scripts/build-recommendation-table.mjs",
+    "ingest:firestore": "node scripts/ingest_to_firestore.js"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.8.0"
   }
 }

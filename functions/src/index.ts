@@ -11,20 +11,15 @@ import { setGlobalOptions } from "firebase-functions";
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { defineSecret } from 'firebase-functions/params';
+import { recommend, type Game } from "./utilities/content-similarity";
+import { initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
+// Initialize Firebase Admin
+initializeApp();
+const db = getFirestore();
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
+// Cost control
 setGlobalOptions({ maxInstances: 10 });
 const myApiKey = defineSecret('STEAM_KEY');
 
@@ -148,6 +143,72 @@ export const getPlayerSummaries = onRequest({
   }
 });
 
+// ============================================
+// Get Similar Games (Content-Based Filtering)
+// ============================================
+/**
+ * Fetches the 10 most similar games to a given game
+ * using content-based filtering with cosine similarity
+ */
+export const getSimilarGames = onRequest({
+  maxInstances: 5,
+}, async (req: any, res: any) => {
+  if (handleCors(req, res)) return;
+  
+  try {
+    const appid = parseInt(req.query.appid as string, 10);
+    const topN = parseInt(req.query.topN as string, 10) || 10;
+
+    if (!appid || isNaN(appid)) {
+      res.status(400).send('Missing or invalid appid parameter');
+      return;
+    }
+
+    logger.info(`Getting ${topN} similar games for appid: ${appid}`);
+
+    // Fetch all games from Firestore with embeddings
+    const gamesSnapshot = await db
+      .collection('steam_games')
+      .select('app_id', 'featureVector', 'name', 'tags', 'genres')
+      .get();
+
+    if (gamesSnapshot.empty) {
+      res.status(404).json({ error: 'No games found in database' });
+      return;
+    }
+
+    // Convert Firestore docs to Game interface
+    const gameTable: Game[] = gamesSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        appid: data.app_id,
+        featureVector: data.featureVector || [],
+        ...data,
+      };
+    });
+
+    // Use content-similarity to get recommendations
+    const similarGames = recommend(appid, gameTable, topN);
+
+    logger.info(`Found ${similarGames.length} similar games`);
+
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(200).json({
+      appid,
+      similarGames: similarGames.map((g) => ({
+        appid: g.appid,
+        name: g.name,
+        tags: g.tags,
+        genres: g.genres,
+        similarity: g.similarity,
+      })),
+    });
+  } catch (err) {
+    logger.error('getSimilarGames error', err);
+    res.status(500).json({ error: `Internal Server Error: ${err}` });
+  }
+});
+
 const fetchFriendList = async (steamId: string, key: string) => {
   const params = new URLSearchParams();
   params.set('key', key);
@@ -170,7 +231,7 @@ export const getFriendList = onRequest({
       res.status(400).send('Missing steamId parameter');
       return;
     }
-    const key = await myApiKey.value();
+    const key = myApiKey.value();
     const data = await fetchFriendList(steamId, key);
     res.set('Access-Control-Allow-Origin', '*');
     res.status(200).json(data);
