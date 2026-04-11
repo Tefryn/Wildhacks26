@@ -10,7 +10,9 @@
     "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
     "dev:server": "npm run dev -w server",
     "dev:client": "npm run dev -w client",
-    "build": "npm run build -w client"
+    "build": "npm run build -w client",
+    "fetch:steam-top5000": "node scripts/fetch-steam-top5000.mjs",
+    "build:recommendation-table": "node scripts/build-recommendation-table.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
