@@ -1,10 +1,12 @@
 /**
- * TimelineView Page - Main page for timeline visualization
+ * TimelineView Page - Main page for timeline visualization with enhanced hachathon UI
  */
 
 import { useState } from 'react';
 import Timeline from '../components/Timeline';
 import EraDetail from '../components/EraDetail';
+import GamingInsights from '../components/GamingInsights';
+import TopGamesChart from '../components/TopGamesChart';
 import { useTimeline } from '../hooks/useTimeline';
 import './TimelineView.css';
 
@@ -109,37 +111,23 @@ export default function TimelineView() {
       {/* Timeline display */}
       {timeline && !loading && !error && (
         <div className="timeline-section">
-          {/* Summary stats */}
-          {timeline.timeline && (
-            <div className="timeline-summary">
-              <h3>Your Gaming Summary</h3>
-              <div className="summary-stats">
-                <div className="summary-stat">
-                  <span className="label">Total Hours</span>
-                  <span className="value">
-                    {timeline.timeline.stats.totalHours.toFixed(0)}
-                  </span>
-                </div>
-                <div className="summary-stat">
-                  <span className="label">Games Played</span>
-                  <span className="value">
-                    {timeline.timeline.stats.totalGames}
-                  </span>
-                </div>
-                <div className="summary-stat">
-                  <span className="label">Gaming Eras</span>
-                  <span className="value">{timeline.timeline.eraCount}</span>
-                </div>
-              </div>
-            </div>
+          {/* Gaming Insights - Player Profile & Achievements */}
+          <GamingInsights timeline={timeline.timeline} eras={timeline.eras || []} />
+
+          {/* Top Games Chart */}
+          {timeline.eras?.[0]?.games && (
+            <TopGamesChart games={timeline.eras[0].games} />
           )}
 
-          {/* Timeline component */}
-          <Timeline
-            eras={timeline.eras || []}
-            selectedEraId={selectedEraId}
-            onEraSelect={setSelectedEraId}
-          />
+          {/* Timeline visualization */}
+          <div className="timeline-wrapper">
+            <h3 className="timeline-title">📅 Your Gaming Timeline</h3>
+            <Timeline
+              eras={timeline.eras || []}
+              selectedEraId={selectedEraId}
+              onEraSelect={setSelectedEraId}
+            />
+          </div>
         </div>
       )}
 
