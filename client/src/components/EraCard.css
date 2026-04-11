@@ -1,0 +1,218 @@
+/**
+ * EraCard Component Styles
+ */
+
+.era-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  min-width: 240px;
+  max-width: 280px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.era-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.era-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  border-color: #6366f1;
+}
+
+.era-card:hover::before {
+  opacity: 1;
+}
+
+.era-card.selected {
+  background: linear-gradient(135deg, #f0f4ff 0%, #f3e8ff 100%);
+  border-color: #6366f1;
+  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.25);
+}
+
+.era-card.hovered {
+  transform: scale(1.05);
+}
+
+/* Era header */
+.era-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.era-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.3;
+  flex: 1;
+}
+
+.era-year {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Date range */
+.era-date-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #999;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.era-date-range .date {
+  font-weight: 500;
+}
+
+.era-date-range .separator {
+  color: #ddd;
+}
+
+/* Stats */
+.era-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.era-stats .stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-number {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #6366f1;
+}
+
+.stat-label {
+  font-size: 0.7rem;
+  color: #999;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+/* Genres */
+.era-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.genre-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  background: #f0f4ff;
+  color: #6366f1;
+  border-radius: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.era-card.selected .genre-tag {
+  background: #6366f1;
+  color: white;
+}
+
+/* Top games preview */
+.top-games {
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.top-games-label {
+  font-size: 0.65rem;
+  color: #999;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  letter-spacing: 0.5px;
+}
+
+.top-game-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-game-hours {
+  font-size: 0.75rem;
+  color: #6366f1;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Hover hint */
+.era-hint {
+  font-size: 0.7rem;
+  color: #bbb;
+  text-align: center;
+  margin-top: 8px;
+  font-style: italic;
+  transition: opacity 0.3s ease;
+}
+
+.era-card:hover .era-hint {
+  color: #6366f1;
+}
+
+.era-card.selected .era-hint {
+  display: none;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .era-card {
+    min-width: 200px;
+    max-width: 220px;
+    padding: 16px;
+  }
+
+  .era-name {
+    font-size: 1rem;
+  }
+
+  .stat-number {
+    font-size: 1.2rem;
+  }
+}
