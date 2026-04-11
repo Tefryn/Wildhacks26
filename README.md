@@ -1,5 +1,5 @@
 # SteamDex
-## Authors: Eiko Reisz, Connor King, 
+## Authors: Eiko Reisz, Connor King, Piyush Sonawane, Yash Yeole
 ## Date: 4/11/2026
 
 # Brainstorming
