@@ -30,3 +30,8 @@ export const helloWorld = onRequest((request, response) => {
   logger.info("Hello logs!", {structuredData: true});
   response.send("Hello from Firebase!");
 });
+
+export const keyCheck = onRequest({secrets: ["STEAM_KEY"]}, (req, res) => {
+  const myKey = process.env.STEAM_KEY;
+  res.send(myKey);
+});
