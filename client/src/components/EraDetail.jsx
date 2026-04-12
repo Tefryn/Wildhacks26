@@ -132,19 +132,13 @@ export default function EraDetail({ era, onClose }) {
             <div className="stats-grid">
               <div className="stat-card">
                 <span className="stat-value">
-                  {stats.totalHours.toFixed(0)}
+                  {stats.achievementCount || games.reduce((sum, game) => sum + (game.achievements?.length || 0), 0)}
                 </span>
-                <span className="stat-label">Total Hours</span>
+                <span className="stat-label">Total Achievements</span>
               </div>
               <div className="stat-card">
                 <span className="stat-value">{stats.gameCount}</span>
                 <span className="stat-label">Games Played</span>
-              </div>
-              <div className="stat-card">
-                <span className="stat-value">
-                  {stats.averageHoursPerGame.toFixed(1)}
-                </span>
-                <span className="stat-label">Avg Hours/Game</span>
               </div>
             </div>
           </div>
@@ -166,7 +160,7 @@ export default function EraDetail({ era, onClose }) {
           {/* Games list */}
           <div className="detail-section games-section">
             <h3 className="section-title">
-              Games in This Era ({games.length})
+              Achievements in This Era ({games.length})
             </h3>
             <div className="games-list">
               {sortedGames.map((game) => (
@@ -184,7 +178,7 @@ export default function EraDetail({ era, onClose }) {
                     )}
                   </div>
                   <div className="game-hours">
-                    {game.playtimeHours.toFixed(0)}h
+                    {game.achievements.length} 
                   </div>
                 </div>
               ))}
