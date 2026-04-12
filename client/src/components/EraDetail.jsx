@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from "react";
 import "./EraDetail.css";
-import { getSimilarGames } from "../api/timelineApi";
+import { getSimilarGames, getGameDetails } from "../api/timelineApi";
 
 /**
  * EraDetail component
@@ -55,16 +55,12 @@ export default function EraDetail({ era, onClose }) {
         // Take only top 3 recommendations
         const topThree = result.similarGames.slice(0, 3);
 
-        // Fetch game names from Steam API for each appid
+        // Fetch game names from backend for each appid
         const gamesWithNames = await Promise.all(
           topThree.map(async (game) => {
             try {
-              const response = await fetch(
-                `https://store.steampowered.com/api/appdetails?appids=${game.appid}`,
-              );
-              const data = await response.json();
-              const gameData = data[game.appid];
-              const name = gameData?.data?.name || `App ${game.appid}`;
+              const gameDetails = await getGameDetails(game.appid);
+              const name = gameDetails?.name || `App ${game.appid}`;
               return {
                 appid: game.appid,
                 title: name,
@@ -224,7 +220,7 @@ export default function EraDetail({ era, onClose }) {
                         )}
                       </div>
                       <a
-                        href={`https://steamcommunity.com/gid/${game.appid}`}
+                        href={`https://store.steampowered.com/app/${game.appid}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="similar-game-link"
