@@ -21,6 +21,7 @@ const db = getFirestore();
 // Cost control
 setGlobalOptions({ maxInstances: 10 });
 const myApiKey = defineSecret('STEAM_KEY');
+const myApiKey2=defineSecret('GEMINI_KEY');
 
 // Simple CORS helper: allow all origins for dev. If you want to restrict,
 // replace '*' with your origin like 'http://localhost:5174' or your hosting URL.
