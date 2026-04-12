@@ -271,6 +271,96 @@
   text-align: right;
 }
 
+/* Similar Games section */
+.similar-games-section {
+  background: #f5f3ff;
+}
+
+.similar-games-loading {
+  padding: 20px;
+  text-align: center;
+  color: #666;
+}
+
+.similar-games-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.similar-game-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.similar-game-item:hover {
+  background: #f8f9fa;
+  border-color: #6366f1;
+  transform: translateX(2px);
+}
+
+.similar-game-rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #6366f1;
+  color: white;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.similar-game-info {
+  flex: 1;
+}
+
+.similar-game-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 4px 0;
+}
+
+.match-percentage {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0;
+}
+
+.similar-game-link {
+  padding: 6px 10px;
+  background: #6366f1;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.similar-game-link:hover {
+  background: #4f46e5;
+  transform: translateY(-1px);
+}
+
+.no-similar-games {
+  text-align: center;
+  color: #999;
+  padding: 20px;
+  margin: 0;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .era-detail-overlay {

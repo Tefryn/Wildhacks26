@@ -2,7 +2,9 @@
  * EraDetail Component - Detailed view of a selected era
  */
 
-import './EraDetail.css';
+import { useState, useEffect } from "react";
+import "./EraDetail.css";
+import { getSimilarGames } from "../api/timelineApi";
 
 /**
  * EraDetail component
@@ -11,18 +13,100 @@ import './EraDetail.css';
  * @param {Function} props.onClose - Close handler
  */
 export default function EraDetail({ era, onClose }) {
+  const [similarGames, setSimilarGames] = useState(null);
+  const [loadingSimilar, setLoadingSimilar] = useState(false);
+
+  // Declare all hooks before any conditional logic
+  const {
+    name,
+    year,
+    season,
+    stats,
+    dominantGenres,
+    games,
+    description,
+    dateRange,
+    topGameAppId,
+  } = era || {};
+
+  // Sort games by playtime
+  const sortedGames = [...(games || [])].sort(
+    (a, b) => b.playtimeHours - a.playtimeHours,
+  );
+
+  // Get top game appId (use provided topGameAppId or fallback to most played game)
+  const topGameId =
+    topGameAppId || (sortedGames.length > 0 ? sortedGames[0].appId : null);
+
+  // Fetch similar games when era changes
+  useEffect(() => {
+    if (!topGameId) {
+      setSimilarGames(null);
+      return;
+    }
+
+    const fetchSimilar = async () => {
+      setLoadingSimilar(true);
+      const result = await getSimilarGames(topGameId);
+
+      // API returns: {appid, similarGames: Array}
+      // Each item: {appid, similarity}
+      if (result && result.similarGames && Array.isArray(result.similarGames)) {
+        // Take only top 3 recommendations
+        const topThree = result.similarGames.slice(0, 3);
+
+        // Fetch game names from Steam API for each appid
+        const gamesWithNames = await Promise.all(
+          topThree.map(async (game) => {
+            try {
+              const response = await fetch(
+                `https://store.steampowered.com/api/appdetails?appids=${game.appid}`,
+              );
+              const data = await response.json();
+              const gameData = data[game.appid];
+              const name = gameData?.data?.name || `App ${game.appid}`;
+              return {
+                appid: game.appid,
+                title: name,
+                similarity: game.similarity,
+                match_percentage: Math.round(game.similarity * 100),
+              };
+            } catch (error) {
+              console.error(
+                `Failed to fetch game name for ${game.appid}:`,
+                error,
+              );
+              return {
+                appid: game.appid,
+                title: `App ${game.appid}`,
+                similarity: game.similarity,
+                match_percentage: Math.round(game.similarity * 100),
+              };
+            }
+          }),
+        );
+
+        setSimilarGames(gamesWithNames);
+      } else {
+        setSimilarGames(null);
+      }
+      setLoadingSimilar(false);
+    };
+
+    fetchSimilar();
+  }, [topGameId]);
+
+  // Early return after all hooks are declared
   if (!era) {
     return null;
   }
 
-  const { name, year, season, stats, dominantGenres, games, description, dateRange } = era;
-
-  // Sort games by playtime
-  const sortedGames = [...games].sort((a, b) => b.playtimeHours - a.playtimeHours);
-
   return (
     <div className="era-detail-overlay" onClick={onClose}>
-      <div className="era-detail-container" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="era-detail-container"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="detail-header">
           <div className="header-content">
@@ -51,7 +135,9 @@ export default function EraDetail({ era, onClose }) {
             <h3 className="section-title">Stats</h3>
             <div className="stats-grid">
               <div className="stat-card">
-                <span className="stat-value">{stats.totalHours.toFixed(0)}</span>
+                <span className="stat-value">
+                  {stats.totalHours.toFixed(0)}
+                </span>
                 <span className="stat-label">Total Hours</span>
               </div>
               <div className="stat-card">
@@ -59,7 +145,9 @@ export default function EraDetail({ era, onClose }) {
                 <span className="stat-label">Games Played</span>
               </div>
               <div className="stat-card">
-                <span className="stat-value">{stats.averageHoursPerGame.toFixed(1)}</span>
+                <span className="stat-value">
+                  {stats.averageHoursPerGame.toFixed(1)}
+                </span>
                 <span className="stat-label">Avg Hours/Game</span>
               </div>
             </div>
@@ -106,6 +194,51 @@ export default function EraDetail({ era, onClose }) {
               ))}
             </div>
           </div>
+
+          {/* Similar Games section */}
+          {topGameId && (
+            <div className="detail-section similar-games-section">
+              <h3 className="section-title">
+                Similar Games to "{sortedGames[0]?.name || "Top Game"}"
+              </h3>
+              {loadingSimilar ? (
+                <div className="similar-games-loading">
+                  <p>Loading recommendations...</p>
+                </div>
+              ) : similarGames && similarGames.length > 0 ? (
+                <div className="similar-games-list">
+                  {similarGames.map((game, index) => (
+                    <div
+                      key={`${game.appid}-${index}`}
+                      className="similar-game-item"
+                    >
+                      <div className="similar-game-rank">{index + 1}</div>
+                      <div className="similar-game-info">
+                        <h4 className="similar-game-name">
+                          {game.title || game.name}
+                        </h4>
+                        {game.match_percentage && (
+                          <p className="match-percentage">
+                            {game.match_percentage}% match
+                          </p>
+                        )}
+                      </div>
+                      <a
+                        href={`https://steamcommunity.com/gid/${game.appid}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="similar-game-link"
+                      >
+                        View on Steam →
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="no-similar-games">No similar games found</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
