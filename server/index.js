@@ -2,9 +2,10 @@ require("dotenv").config(); // Load environment variables from .env file
 const express = require("express");
 const cors = require("cors");
 const timelineRoutes = require("./src/routes/timelines");
+const gamesRoutes = require("./src/routes/games");
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
@@ -17,6 +18,9 @@ app.get("/api/health", (_req, res) => {
 // Timeline routes
 app.use("/api/timeline", timelineRoutes);
 
+// Games routes (proxy to Steam API) - for local development
+app.use("/api/games", gamesRoutes);
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
@@ -25,6 +29,7 @@ app.use((req, res) => {
     availableEndpoints: [
       "GET /api/health",
       "GET /api/timeline?steamId={steamId}",
+      "GET /api/games/details/:appId",
     ],
   });
 });

@@ -7,22 +7,33 @@ import Timeline from "../components/Timeline";
 import EraDetail from "../components/EraDetail";
 import GamingInsights from "../components/GamingInsights";
 import TopGamesChart from "../components/TopGamesChart";
-import SteamAuthCard from "../components/SteamAuthCard";
 import { useSteamAuth } from "../hooks/useSteamAuth";
 import { useTimeline } from "../hooks/useTimeline";
 import "./TimelineView.css";
+
+const AI_ENDPOINT_URL = "https://getairesponse-e4wyzyxcia-uc.a.run.app"
+const MANUAL_STEAM_ID_KEY = "manualSteamId";
+
+const readStoredManualSteamId = () => {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return window.localStorage.getItem(MANUAL_STEAM_ID_KEY) || "";
+};
 
 /**
  * TimelineView page component
  */
 export default function TimelineView() {
   const { steamId: authedSteamId, signOut, isSignedIn } = useSteamAuth();
-  const [manualSteamId, setManualSteamId] = useState("");
+  const [manualSteamId, setManualSteamId] = useState(() => readStoredManualSteamId());
   const [selectedEraId, setSelectedEraId] = useState(null);
+  const [aiResponses, setAiResponses] = useState({}); // Store AI responses by eraId
 
   const activeSteamId = authedSteamId || manualSteamId;
 
-  const { timeline, loading, error, refetch } = useTimeline(activeSteamId);
+  const { timeline, loading, error } = useTimeline(activeSteamId);
 
   useEffect(() => {
     if (authedSteamId) {
@@ -31,22 +42,67 @@ export default function TimelineView() {
   }, [authedSteamId]);
 
   /**
-   * Handle search submission
+   * Handle era selection with AI response caching
    */
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  const handleEraSelect = async (eraId) => {
+    setSelectedEraId(eraId);
 
-    if (!manualSteamId.trim()) {
-      alert("Please enter a Steam ID");
+    // Check if we already have an AI response for this era
+    if (aiResponses[eraId]) {
       return;
     }
 
-    setManualSteamId(manualSteamId.trim());
-    setSelectedEraId(null);
+    // Find the selected era
+    const era = timeline?.eras?.find((e) => e.eraId === eraId);
+    if (!era) return;
+
+    try {
+      // Call getAIResponse with era information
+      const response = await fetch(AI_ENDPOINT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eraId: era.eraId,
+          eraName: era.eraName,
+          games: era.games,
+          achievements: era.achievements,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Store the AI response locally
+      setAiResponses((prev) => ({
+        ...prev,
+        [eraId]: data,
+      }));
+    } catch (err) {
+      console.error("Error fetching AI response for era:", err);
+    }
   };
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const handleManualSteamIdChanged = () => {
+      setManualSteamId(readStoredManualSteamId());
+    };
+
+    window.addEventListener("manual-steam-id-changed", handleManualSteamIdChanged);
+
+    return () => {
+      window.removeEventListener("manual-steam-id-changed", handleManualSteamIdChanged);
+    };
+  }, []);
+
   /**
-   * Get selected era object
+   * Handle search submission
    */
   const selectedEra =
     timeline?.eras?.find((era) => era.eraId === selectedEraId) || null;
@@ -58,55 +114,6 @@ export default function TimelineView() {
         <h1>Steam Gaming Timeline</h1>
         <p className="view-subtitle">
           Discover your gaming journey through time
-        </p>
-      </div>
-
-      <SteamAuthCard onConnect={() => setSelectedEraId(null)} />
-
-      {/* Search section */}
-      <div className="search-section">
-        <form onSubmit={handleSearch} className="search-form">
-          <div className="search-label-row">
-            <span className="search-label">Manual fallback</span>
-            {isSignedIn && (
-              <button
-                type="button"
-                className="inline-link-button"
-                onClick={signOut}
-              >
-                Disconnect Steam
-              </button>
-            )}
-          </div>
-          <div className="input-group">
-            <input
-              type="text"
-              placeholder="Enter your Steam ID (or custom URL ID)"
-              value={manualSteamId}
-              onChange={(e) => setManualSteamId(e.target.value)}
-              className="steam-id-input"
-              disabled={loading}
-            />
-            <button type="submit" className="search-button" disabled={loading}>
-              {loading ? "Loading..." : "View Timeline"}
-            </button>
-          </div>
-          {activeSteamId && (
-            <button
-              type="button"
-              className="refresh-button"
-              onClick={refetch}
-              disabled={loading}
-            >
-              Refresh
-            </button>
-          )}
-        </form>
-
-        {/* Example hint */}
-        <p className="search-hint">
-          Prefer Steam sign-in above. If you need to paste it manually, use the
-          17-digit SteamID64 from your profile URL.
         </p>
       </div>
 
@@ -150,7 +157,7 @@ export default function TimelineView() {
             <Timeline
               eras={timeline.eras || []}
               selectedEraId={selectedEraId}
-              onEraSelect={setSelectedEraId}
+              onEraSelect={handleEraSelect}
             />
           </div>
         </div>
