@@ -52,11 +52,18 @@ type Game = {
 type Achievement = {
   api_name: string;
   name: string;
-  achieved: boolean;
+  achieved: boolean | number;
   date_unlocked: Date;
   percent: number;
   game_id: number;
 }
+
+type SteamPlayerAchievement = {
+  apiname?: string;
+  name?: string;
+  achieved?: boolean | number;
+  unlocktime?: number;
+};
 
 type GetOwnedGamesResponse = {
   response: {
@@ -227,10 +234,20 @@ const fetchPlayerAchievements = async (
   }
 
   const json = (await res.json()) as {
-    playerstats?: { achievements?: Achievement[] };
+    playerstats?: { achievements?: SteamPlayerAchievement[] };
   };
 
-  return json.playerstats?.achievements ?? [];
+  const rawAchievements = json.playerstats?.achievements ?? [];
+  return rawAchievements
+    .filter((a) => typeof a.apiname === 'string' && a.apiname.length > 0)
+    .map((a) => ({
+      api_name: a.apiname as string,
+      name: a.name ?? a.apiname ?? '',
+      achieved: a.achieved ?? 0,
+      date_unlocked: new Date((a.unlocktime ?? 0) * 1000),
+      percent: 0,
+      game_id: appId,
+    }));
 };
 
 const fetchGlobalAchievementPercentages = async (
