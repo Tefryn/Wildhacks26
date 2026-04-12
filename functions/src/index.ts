@@ -44,7 +44,7 @@ type Game = {
   playtime_forever: number;
   img_icon_url?: string;
   img_logo_url?: string;
-  achievements: number[];
+  achievements: string[];
   rarityWeightedAchievementScore: number;
 };
 
@@ -286,7 +286,7 @@ export const getGames = onRequest({
 
           // Calculate rarity-weighted achievement score
           let rarityWeightedAchievementScore = 0;
-          const achievementIds: number[] = [];
+          const achievementIds: string[] = [];
 
           for (const achievement of achievements) {
             const globalPercent = globalPercentages.get(achievement.api_name) ?? 0;
@@ -294,7 +294,6 @@ export const getGames = onRequest({
             rarityWeightedAchievementScore += rarityScore;
 
             // Add achievement to the master list
-            const achievementId = allAchievements.length;
             allAchievements.push({
               api_name: achievement.api_name,
               name: achievement.name,
@@ -303,7 +302,7 @@ export const getGames = onRequest({
               percent: globalPercent,
               game_id: game.appid,
             });
-            achievementIds.push(achievementId);
+            achievementIds.push(achievement.api_name);
           }
 
           return {
