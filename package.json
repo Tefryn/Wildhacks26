@@ -12,10 +12,10 @@
     "dev:server": "npm run dev -w server",
     "dev:client": "npm run dev -w client",
     "build": "npm run build -w client",
-    "fetch:steam-top5000": "node scripts/fetch-steam-top5000.mjs",
-    "filter:filter-tags": "node scripts/filter_tags.mjs",
+    "fetch:steam-top-games": "node scripts/fetch-steam-top-games.mjs",
+    "filter:filter-tags": "node scripts/filter-tags.mjs",
     "build:recommendation-table": "node scripts/build-recommendation-table.mjs",
-    "ingest:firestore": "node scripts/ingest_to_firestore.js"
+    "ingest:firestore": "node scripts/ingest-to-firestore.js"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

@@ -6,8 +6,8 @@ import { parseArgs } from "node:util";
 // Config
 // ---------------------------------------------------------------------------
 
-const DEFAULT_GAMES_INPUT = "data/steam_top_5000_games.json";
-const DEFAULT_TAGS_INPUT  = "data/top_80_tags.json";
+const DEFAULT_GAMES_INPUT = "data/steam_top_games.json";
+const DEFAULT_TAGS_INPUT  = "data/top_tags.json";
 const OUTPUT_DIR          = "data";
 const OUTPUT_FILE         = "recommendation_table.json";
 const OUTPUT_CSV          = "recommendation_table.csv";
