@@ -27,8 +27,8 @@ const geminiKey = defineSecret('GEMINI_KEY');
 // replace '*' with your origin like 'http://localhost:5174' or your hosting URL.
 const handleCors = (req: any, res: any) => {
   res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  res.set('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS');
+  res.set('Access-Control-Allow-Headers', '*');
   res.set('Access-Control-Max-Age', '3600');
   if (req.method === 'OPTIONS') {
     // Preflight request
@@ -535,8 +535,7 @@ Write a creative, personality-filled paragraph (2-3 sentences) that captures the
  * @param appId - Steam App ID
  * @returns Game details object (name, header image, genres, etc.)
  */
-export const getGameDetails = onRequest(
-  async (req: any, res: any) => {
+export const getGameDetails = onRequest(async (req: any, res: any) => {
     if (handleCors(req, res)) return;
     try {
       const appId = req.query.appid || req.query.appId;
