@@ -2,23 +2,24 @@
  * TimelineView Page - Main page for timeline visualization with enhanced hachathon UI
  */
 
-import { useState } from 'react';
-import Timeline from '../components/Timeline';
-import EraDetail from '../components/EraDetail';
-import GamingInsights from '../components/GamingInsights';
-import TopGamesChart from '../components/TopGamesChart';
-import { useTimeline } from '../hooks/useTimeline';
-import './TimelineView.css';
+import { useState } from "react";
+import Timeline from "../components/Timeline";
+import EraDetail from "../components/EraDetail";
+import GamingInsights from "../components/GamingInsights";
+import TopGamesChart from "../components/TopGamesChart";
+import { useTimeline } from "../hooks/useTimeline";
+import "./TimelineView.css";
 
 /**
  * TimelineView page component
  */
 export default function TimelineView() {
-  const [steamId, setSteamId] = useState('');
-  const [inputValue, setInputValue] = useState('');
+  const [steamId, setSteamId] = useState("");
+  const [inputValue, setInputValue] = useState("");
   const [selectedEraId, setSelectedEraId] = useState(null);
 
-  const { timeline, loading, error, getTimeline, refetch } = useTimeline(steamId);
+  const { timeline, loading, error, getTimeline, refetch } =
+    useTimeline("76561198142089940");
 
   /**
    * Handle search submission
@@ -27,7 +28,7 @@ export default function TimelineView() {
     e.preventDefault();
 
     if (!inputValue.trim()) {
-      alert('Please enter a Steam ID');
+      alert("Please enter a Steam ID");
       return;
     }
 
@@ -38,7 +39,8 @@ export default function TimelineView() {
   /**
    * Get selected era object
    */
-  const selectedEra = timeline?.eras?.find((era) => era.eraId === selectedEraId) || null;
+  const selectedEra =
+    timeline?.eras?.find((era) => era.eraId === selectedEraId) || null;
 
   return (
     <div className="timeline-view">
@@ -62,12 +64,8 @@ export default function TimelineView() {
               className="steam-id-input"
               disabled={loading}
             />
-            <button
-              type="submit"
-              className="search-button"
-              disabled={loading}
-            >
-              {loading ? 'Loading...' : 'View Timeline'}
+            <button type="submit" className="search-button" disabled={loading}>
+              {loading ? "Loading..." : "View Timeline"}
             </button>
           </div>
           {steamId && (
@@ -84,7 +82,8 @@ export default function TimelineView() {
 
         {/* Example hint */}
         <p className="search-hint">
-          💡 Find your Steam ID: Visit your Steam profile, and copy the number from the URL
+          💡 Find your Steam ID: Visit your Steam profile, and copy the number
+          from the URL
         </p>
       </div>
 
@@ -100,7 +99,7 @@ export default function TimelineView() {
       {error && (
         <div className="error-state">
           <p className="error-message">❌ {error}</p>
-          {error.includes('Firebase') && (
+          {error.includes("Firebase") && (
             <p className="error-hint">
               Make sure your backend server is running on http://localhost:5000
             </p>
@@ -112,7 +111,10 @@ export default function TimelineView() {
       {timeline && !loading && !error && (
         <div className="timeline-section">
           {/* Gaming Insights - Player Profile & Achievements */}
-          <GamingInsights timeline={timeline.timeline} eras={timeline.eras || []} />
+          <GamingInsights
+            timeline={timeline.timeline}
+            eras={timeline.eras || []}
+          />
 
           {/* Top Games Chart */}
           {timeline.eras?.[0]?.games && (

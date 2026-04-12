@@ -2,8 +2,8 @@
  * useTimeline Hook - Custom hook for fetching and managing timeline data
  */
 
-import { useState, useEffect } from 'react';
-import { fetchTimeline } from '../api/timelineApi';
+import { useState, useEffect } from "react";
+import { fetchTimeline } from "../api/timelineApi";
 
 /**
  * Custom hook to fetch and manage timeline data
@@ -21,7 +21,7 @@ export function useTimeline(steamId = null, options = {}) {
    */
   const getTimeline = async (id) => {
     if (!id) {
-      setError('Steam ID is required');
+      setError("Steam ID is required");
       return;
     }
 
@@ -33,9 +33,9 @@ export function useTimeline(steamId = null, options = {}) {
       setTimeline(data);
       return data;
     } catch (err) {
-      const errorMessage = err.message || 'Failed to fetch timeline';
+      const errorMessage = err.message || "Failed to fetch timeline";
       setError(errorMessage);
-      console.error('Timeline fetch error:', err);
+      console.error("Timeline fetch error:", err);
     } finally {
       setLoading(false);
     }
