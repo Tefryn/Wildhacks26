@@ -234,4 +234,11 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+### Firebase ###
+# Firebase service account keys
+serviceAccountKey.json
+
+#data files
+data/*
+
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,react,macos,windows,node

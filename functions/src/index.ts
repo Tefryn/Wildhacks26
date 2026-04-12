@@ -11,27 +11,16 @@ import { setGlobalOptions } from "firebase-functions";
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { defineSecret } from 'firebase-functions/params';
+import { initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
+// Initialize Firebase Admin
+initializeApp();
+const db = getFirestore();
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
+// Cost control
 setGlobalOptions({ maxInstances: 10 });
 const myApiKey = defineSecret('STEAM_KEY');
-
-export const helloWorld = onRequest((request, response) => {
-  logger.info("Hello logs!", { structuredData: true });
-  response.send("Hello from Firebase!");
-});
 
 // Simple CORS helper: allow all origins for dev. If you want to restrict,
 // replace '*' with your origin like 'http://localhost:5174' or your hosting URL.
@@ -49,20 +38,35 @@ const handleCors = (req: any, res: any) => {
 };
 
 // Response shape for GetOwnedGames when include_appinfo=1
-type OwnedGame = {
+type Game = {
   appid: number;
-  name?: string;
-  playtime_2weeks?: number;
-  playtime_forever?: number;
+  name: string;
+  playtime_forever: number;
   img_icon_url?: string;
   img_logo_url?: string;
-  has_community_visible_stats?: boolean;
+  achievements: string[];
+  rarityWeightedAchievementScore: number;
+};
+
+type Achievement = {
+  api_name: string;
+  name: string;
+  achieved: boolean | number;
+  date_unlocked: Date;
+  percent: number;
+  game_id: number;
+}
+
+type SteamPlayerAchievement = {
+  apiname?: string;
+  name?: string;
+  achieved?: boolean | number;
+  unlocktime?: number;
 };
 
 type GetOwnedGamesResponse = {
   response: {
-    game_count?: number;
-    games?: OwnedGame[];
+    games: Game[]
   };
 };
 
@@ -117,106 +121,104 @@ export const getOwnedGames = onRequest({
   }
 });
 
-const fetchPlayerSummaries = async (steamId: string, key: string) => {
-  const params = new URLSearchParams();
-  params.set('key', key);
-  params.set('steamids', steamId);
-  params.set('format', 'json');
-  const url = `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?${params.toString()}`;
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`PlayerSummaries HTTP ${r.status}`);
-  return (await r.json());
-};
 
-export const getPlayerSummaries = onRequest({
-  secrets: [myApiKey],
-}, async (req: any, res: any) => {
-  if (handleCors(req, res)) return;
-  try {
-    const steamId = req.query.steamId as string;
-    if (!steamId) {
-      res.status(400).send('Missing steamId parameter');
-      return;
-    }
-    const key = await myApiKey.value();
-    const data = await fetchPlayerSummaries(steamId, key);
-    res.set('Access-Control-Allow-Origin', '*');
-    res.status(200).json(data);
-  } catch (err) {
-    logger.error('getPlayerSummaries error', err);
-    res.status(500).send('Internal Server Error:' + err);
-  }
-});
-
-const fetchFriendList = async (steamId: string, key: string) => {
-  const params = new URLSearchParams();
-  params.set('key', key);
-  params.set('steamid', steamId);
-  params.set('relationship', 'friend');
-  params.set('format', 'json');
-  const url = `https://api.steampowered.com/ISteamUser/GetFriendList/v0001/?${params.toString()}`;
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`FriendList HTTP ${r.status}`);
-  return (await r.json());
-};
-
-export const getFriendList = onRequest({
-  secrets: [myApiKey],
-}, async (req: any, res: any) => {
-  if (handleCors(req, res)) return;
-  try {
-    const steamId = req.query.steamId as string;
-    if (!steamId) {
-      res.status(400).send('Missing steamId parameter');
-      return;
-    }
-    const key = await myApiKey.value();
-    const data = await fetchFriendList(steamId, key);
-    res.set('Access-Control-Allow-Origin', '*');
-    res.status(200).json(data);
-  } catch (err) {
-    logger.error('getFriendList error', err);
-    res.status(500).send('Internal Server Error:' + err);
-  }
-});
-
-type PlayerAchievement = {
-  apiname: string;
-  achieved: number;
-};
-
-type AppMetadata = {
-  genres: string[];
-  tags: string[];
-};
-
-type GameFeature = {
+interface GameVec {
   appid: number;
-  name: string;
-  ownsGame: number;
-  hasPlayed: number;
-  playtimeHours: number;
-  achievementUnlockedCount: number;
-  achievementTotalCount: number;
-  achievementCompletionRate: number;
-  rarityWeightedAchievementScore: number;
-  genres: string[];
-  tags: string[];
+  featureVector: number[];
+  similarity: number;
+}
+
+const cosineSimilarity = (a: number[], b: number[]): number => {
+  const dot = a.reduce((sum, ai, i) => sum + ai * b[i], 0);
+  const magA = Math.sqrt(a.reduce((sum, ai) => sum + ai * ai, 0));
+  const magB = Math.sqrt(b.reduce((sum, bi) => sum + bi * bi, 0));
+  return dot / (magA * magB || 1);
 };
 
-const normalizeFeatureKey = (value: string): string => {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '');
+// Given a seed game, rank all others by similarity
+const recommend = (
+  seedAppid: number,
+  table: GameVec[],
+  topN: number = 10
+): GameVec[] => {
+  const seed = table.find((g) => g.appid === seedAppid);
+  if (!seed) {
+    throw new Error(`Game with appid ${seedAppid} not found in table`);
+  }
+  
+  return table
+    .filter((g) => g.appid !== seedAppid)
+    .map((g) => {
+      const numericSimilarity = cosineSimilarity(seed.featureVector.slice(0, 3), g.featureVector.slice(0, 3));
+      const tagSimilarity = cosineSimilarity(seed.featureVector.slice(3), g.featureVector.slice(3));
+
+      const finalScore = 0.8 * tagSimilarity + 0.2 * numericSimilarity;
+      return { ...g, similarity: finalScore}
+    })
+    .sort((a, b) => (b.similarity || 0) - (a.similarity || 0))
+    .slice(0, topN);
 };
+
+export const getSimilarGames = onRequest({
+  maxInstances: 5,
+}, async (req: any, res: any) => {
+  if (handleCors(req, res)) return;
+  
+  try {
+    const appid = parseInt(req.query.appid as string, 10);
+    const topN = parseInt(req.query.topN as string, 10) || 10;
+
+    if (!appid || isNaN(appid)) {
+      res.status(400).json({ error: 'Missing or invalid appid parameter' });
+      return;
+    }
+
+    logger.info(`Getting ${topN} similar games for appid: ${appid}`);
+
+    const gamesSnapshot = await db
+      .collection('games')
+      .select('featureVector', 'name')
+      .get();
+
+    if (gamesSnapshot.empty) {
+      res.status(404).json({ error: 'No games found in database' });
+      return;
+    }
+
+    // Convert Firestore docs to Game interface
+    const gameTable: GameVec[] = gamesSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        appid: parseInt(doc.id, 10),
+        featureVector: data.featureVector || [],
+        ...data,
+      } as GameVec;
+    });
+
+    // Use content-similarity to get recommendations
+    const similarGames = recommend(appid, gameTable, topN);
+
+    logger.info(`Found ${similarGames.length} similar games for appid ${appid}`);
+
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(200).json({
+      appid,
+      similarGames: similarGames.map((g) => ({
+        appid: g.appid,
+        similarity: g.similarity,
+      })),
+    });
+  } catch (err) {
+    logger.error('getSimilarGames error', err);
+    res.status(500).json({ error: `Internal Server Error: ${err}` });
+  }
+});
 
 const fetchPlayerAchievements = async (
   steamId: string,
   appId: number,
   key: string
-): Promise<PlayerAchievement[]> => {
+): Promise<Achievement[]> => {
   const params = new URLSearchParams();
   params.set('key', key);
   params.set('steamid', steamId);
@@ -231,10 +233,20 @@ const fetchPlayerAchievements = async (
   }
 
   const json = (await res.json()) as {
-    playerstats?: { achievements?: PlayerAchievement[] };
+    playerstats?: { achievements?: SteamPlayerAchievement[] };
   };
 
-  return json.playerstats?.achievements ?? [];
+  const rawAchievements = json.playerstats?.achievements ?? [];
+  return rawAchievements
+    .filter((a) => typeof a.apiname === 'string' && a.apiname.length > 0)
+    .map((a) => ({
+      api_name: a.apiname as string,
+      name: a.name ?? a.apiname ?? '',
+      achieved: a.achieved ?? 0,
+      date_unlocked: new Date((a.unlocktime ?? 0) * 1000),
+      percent: 0,
+      game_id: appId,
+    }));
 };
 
 const fetchGlobalAchievementPercentages = async (
@@ -262,87 +274,7 @@ const fetchGlobalAchievementPercentages = async (
   return result;
 };
 
-const fetchAppMetadata = async (appId: number): Promise<AppMetadata> => {
-  const params = new URLSearchParams();
-  params.set('appids', String(appId));
-  params.set('l', 'en');
-  params.set('cc', 'us');
-  const url = `https://store.steampowered.com/api/appdetails?${params.toString()}`;
-
-  const res = await fetch(url);
-  if (!res.ok) {
-    return { genres: [], tags: [] };
-  }
-
-  const json = (await res.json()) as Record<string, {
-    success?: boolean;
-    data?: {
-      genres?: Array<{ description: string }>;
-      categories?: Array<{ description: string }>;
-    };
-  }>;
-
-  const entry = json[String(appId)];
-  if (!entry?.success || !entry.data) {
-    return { genres: [], tags: [] };
-  }
-
-  const genres = (entry.data.genres ?? [])
-    .map((g) => g.description)
-    .filter(Boolean);
-  const tags = (entry.data.categories ?? [])
-    .map((c) => c.description)
-    .filter(Boolean);
-
-  return { genres, tags };
-};
-
-const buildGameFeature = async (
-  game: OwnedGame,
-  steamId: string,
-  key: string
-): Promise<GameFeature> => {
-  const appId = game.appid;
-  const [metadata, playerAchievements, globalRates] = await Promise.all([
-    fetchAppMetadata(appId),
-    fetchPlayerAchievements(steamId, appId, key),
-    fetchGlobalAchievementPercentages(appId),
-  ]);
-
-  const total = playerAchievements.length;
-  const unlocked = playerAchievements.filter((a) => a.achieved === 1);
-  const completionRate = total > 0 ? unlocked.length / total : 0;
-
-  let rarityWeightedUnlocked = 0;
-  for (const a of unlocked) {
-    const globalPercent = globalRates.get(a.apiname);
-    const globalCompletionRate = globalPercent === undefined
-      ? 0
-      : Math.min(Math.max(globalPercent / 100, 0), 1);
-    const rarityWeight = 1 - globalCompletionRate;
-    rarityWeightedUnlocked += rarityWeight;
-  }
-  const rarityWeightedAchievementScore =
-    total > 0 ? rarityWeightedUnlocked / total : 0;
-
-  const playtimeMinutes = game.playtime_forever ?? 0;
-
-  return {
-    appid: appId,
-    name: game.name ?? String(appId),
-    ownsGame: 1,
-    hasPlayed: playtimeMinutes > 0 ? 1 : 0,
-    playtimeHours: Math.round((playtimeMinutes / 60) * 100) / 100,
-    achievementUnlockedCount: unlocked.length,
-    achievementTotalCount: total,
-    achievementCompletionRate: completionRate,
-    rarityWeightedAchievementScore,
-    genres: metadata.genres,
-    tags: metadata.tags,
-  };
-};
-
-export const getUserFeatureModel = onRequest({
+export const getGames = onRequest({
   secrets: [myApiKey],
 }, async (req: any, res: any) => {
   if (handleCors(req, res)) return;
@@ -350,75 +282,82 @@ export const getUserFeatureModel = onRequest({
   try {
     const steamId = req.query.steamId as string;
     if (!steamId) {
-      res.status(400).send('Missing steamId parameter');
+      res.status(400).json({ error: 'Missing steamId parameter' });
       return;
     }
 
-    const maxGamesRaw = Number(req.query.maxGames ?? 25);
-    const maxGames = Number.isFinite(maxGamesRaw)
-      ? Math.min(Math.max(maxGamesRaw, 1), 50)
-      : 25;
+    logger.info(`Fetching games for Steam ID: ${steamId}`);
 
     const key = await myApiKey.value();
-    const owned = await fetchOwnedGames(steamId, key, true, true);
-    const games = owned.response.games ?? [];
+    const ownedGamesResponse = await fetchOwnedGames(steamId, key);
+    const games = ownedGamesResponse.response.games ?? [];
 
-    const selectedGames = [...games]
-      .sort((a, b) => (b.playtime_forever ?? 0) - (a.playtime_forever ?? 0))
-      .slice(0, maxGames);
+    logger.info(`Found ${games.length} games for user`);
 
-    const features = await Promise.all(
-      selectedGames.map((g) => buildGameFeature(g, steamId, key))
+    // Fetch achievements and global percentages for each game in parallel
+    const allAchievements: Achievement[] = [];
+    const gamesWithAchievements = await Promise.all(
+      games.map(async (game) => {
+        try {
+          const [achievements, globalPercentages] = await Promise.all([
+            fetchPlayerAchievements(steamId, game.appid, key),
+            fetchGlobalAchievementPercentages(game.appid),
+          ]);
+
+          // Calculate rarity-weighted achievement score
+          let rarityWeightedAchievementScore = 0;
+          const achievementIds: string[] = [];
+
+          for (const achievement of achievements) {
+            const globalPercent = globalPercentages.get(achievement.api_name) ?? 0;
+            const rarityScore = 1 - globalPercent / 100;
+            rarityWeightedAchievementScore += rarityScore;
+
+            // Add achievement to the master list
+            allAchievements.push({
+              api_name: achievement.api_name,
+              name: achievement.name,
+              achieved: achievement.achieved,
+              date_unlocked: achievement.date_unlocked,
+              percent: globalPercent,
+              game_id: game.appid,
+            });
+            achievementIds.push(achievement.api_name);
+          }
+
+          return {
+            appid: game.appid,
+            name: game.name,
+            playtime_forever: game.playtime_forever ?? 0,
+            img_icon_url: game.img_icon_url,
+            img_logo_url: game.img_logo_url,
+            achievements: achievementIds,
+            rarityWeightedAchievementScore
+          };
+        } catch (err) {
+          logger.warn(`Error fetching achievements for app ${game.appid}:`, err);
+          return {
+            appid: game.appid,
+            name: game.name,
+            playtime_forever: game.playtime_forever ?? 0,
+            img_icon_url: game.img_icon_url,
+            img_logo_url: game.img_logo_url,
+            achievements: [],
+            rarityWeightedAchievementScore: 0
+          };
+        }
+      })
     );
-
-    const genreVocab = Array.from(new Set(
-      features.flatMap((g) => g.genres.map(normalizeFeatureKey)).filter(Boolean)
-    )).sort();
-
-    const tagVocab = Array.from(new Set(
-      features.flatMap((g) => g.tags.map(normalizeFeatureKey)).filter(Boolean)
-    )).sort();
-
-    const gamesWithOneHot = features.map((g) => {
-      const genreSet = new Set(g.genres.map(normalizeFeatureKey));
-      const tagSet = new Set(g.tags.map(normalizeFeatureKey));
-
-      const genreOneHot: Record<string, number> = {};
-      for (const genre of genreVocab) {
-        genreOneHot[genre] = genreSet.has(genre) ? 1 : 0;
-      }
-
-      const tagOneHot: Record<string, number> = {};
-      for (const tag of tagVocab) {
-        tagOneHot[tag] = tagSet.has(tag) ? 1 : 0;
-      }
-
-      const { genres, tags, ...gameCore } = g;
-
-      return {
-        ...gameCore,
-        genreOneHot,
-        tagOneHot,
-      };
-    });
 
     res.set('Access-Control-Allow-Origin', '*');
     res.status(200).json({
       steamId,
-      summary: {
-        ownedGameCount: games.length,
-        processedGameCount: gamesWithOneHot.length,
-      },
-      vocab: {
-        genres: genreVocab,
-        tags: tagVocab,
-      },
-      games: gamesWithOneHot,
+      games: gamesWithAchievements,
+      achievements: allAchievements,
     });
   } catch (err) {
-    logger.error('getUserFeatureModel error', err);
-    res.status(500).send('Internal Server Error:' + err);
+    logger.error('getGames error', err);
+    res.status(500).json({ error: `Internal Server Error: ${err}` });
   }
 });
-
 
