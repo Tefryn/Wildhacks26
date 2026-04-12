@@ -3,6 +3,34 @@
  */
 
 const DEFAULT_TIMELINE_URL = "https://getGames-e4wyzyxcia-uc.a.run.app";
+
+/**
+ * Fetches game details from backend (local in dev, Firebase in production)
+ * @param {number} appId - Steam App ID
+ * @returns {Promise<Object>} - Game details object
+ */
+export async function getGameDetails(appId) {
+  // Use local backend in development, Firebase in production
+  const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+  const gameDetailsUrl = isDev
+    ? `http://localhost:5000/api/games/details/${appId}`
+    : `https://us-central1-wildhacks26.cloudfunctions.net/getGameDetails?appId=${appId}`;
+  
+  try {
+    const response = await fetch(gameDetailsUrl);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`Failed to fetch game details for ${appId}:`, error);
+    return null;
+  }
+}
+
 /**
  * Fetches timeline data for a Steam user
  * @param {string} steamId - Steam ID of the user

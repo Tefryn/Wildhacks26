@@ -445,6 +445,7 @@ export const getAIResponse = onRequest({
 }, async (req: any, res: any) => {
   if (handleCors(req, res)) return;
 
+
   try {
     const { eraId, eraName, games, achievements } = req.body;
 
@@ -526,3 +527,77 @@ Write a creative, personality-filled paragraph (2-3 sentences) that captures the
     res.status(500).json({ error: `Internal Server Error: ${err}` });
   }
 });
+
+/**
+ * Get Game Details - Proxy to Steam API to bypass CORS restrictions
+ * Fetches game details from Steam Store API
+ * 
+ * @param appId - Steam App ID
+ * @returns Game details object (name, header image, genres, etc.)
+ */
+export const getGameDetails = onRequest(
+  async (req: any, res: any) => {
+    if (handleCors(req, res)) return;
+    try {
+      const appId = req.query.appid || req.query.appId;
+
+      if (!appId || !/^\d+$/.test(String(appId))) {
+        res.status(400).json({
+          error: 'Invalid appId - must be numeric',
+          appId,
+        });
+        return;
+      }
+
+      // Fetch from Steam API
+      const steamResponse = await fetch(
+        `https://store.steampowered.com/api/appdetails?appids=${appId}`
+      );
+
+      if (!steamResponse.ok) {
+        res.status(steamResponse.status).json({
+          error: 'Failed to fetch from Steam API',
+          appId,
+        });
+        return;
+      }
+
+      const steamData = (await steamResponse.json()) as Record<string, any>;
+      const gameData = steamData[String(appId)];
+
+      if (!gameData || !gameData.success) {
+        res.status(404).json({
+          error: 'Game not found',
+          appId,
+        });
+        return;
+      }
+
+      const data = gameData.data || {};
+
+      // Extract relevant game details
+      const gameDetails = {
+        appId: parseInt(String(appId)),
+        name: data.name || `App ${appId}`,
+        headerImage: data.header_image || null,
+        releaseDate: data.release_date?.date || null,
+        developers: data.developers || [],
+        publishers: data.publishers || [],
+        genres: (data.genres || []).map((g: any) => g.description),
+        categories: (data.categories || []).map((c: any) => c.description),
+        shortDescription: data.short_description || null,
+      };
+
+      res.set('Access-Control-Allow-Origin', '*');
+      res.status(200).json(gameDetails);
+    } catch (error) {
+      logger.error('getGameDetails error', error);
+      res.set('Access-Control-Allow-Origin', '*');
+      res.status(500).json({
+        error: 'Failed to fetch game details',
+        appId: req.query.appid || req.query.appId,
+      });
+    }
+  }
+);
+

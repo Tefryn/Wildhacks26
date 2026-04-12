@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from "react";
 import "./EraDetail.css";
-import { getSimilarGames } from "../api/timelineApi";
+import { getSimilarGames, getGameDetails } from "../api/timelineApi";
 
 /**
  * EraDetail component
@@ -55,16 +55,12 @@ export default function EraDetail({ era, onClose }) {
         // Take only top 3 recommendations
         const topThree = result.similarGames.slice(0, 3);
 
-        // Fetch game names from Steam API for each appid
+        // Fetch game names from backend for each appid
         const gamesWithNames = await Promise.all(
           topThree.map(async (game) => {
             try {
-              const response = await fetch(
-                `https://store.steampowered.com/api/appdetails?appids=${game.appid}`,
-              );
-              const data = await response.json();
-              const gameData = data[game.appid];
-              const name = gameData?.data?.name || `App ${game.appid}`;
+              const gameDetails = await getGameDetails(game.appid);
+              const name = gameDetails?.name || `App ${game.appid}`;
               return {
                 appid: game.appid,
                 title: name,
@@ -136,19 +132,13 @@ export default function EraDetail({ era, onClose }) {
             <div className="stats-grid">
               <div className="stat-card">
                 <span className="stat-value">
-                  {stats.totalHours.toFixed(0)}
+                  {stats.achievementCount || games.reduce((sum, game) => sum + (game.achievements?.length || 0), 0)}
                 </span>
-                <span className="stat-label">Total Hours</span>
+                <span className="stat-label">Total Achievements</span>
               </div>
               <div className="stat-card">
                 <span className="stat-value">{stats.gameCount}</span>
                 <span className="stat-label">Games Played</span>
-              </div>
-              <div className="stat-card">
-                <span className="stat-value">
-                  {stats.averageHoursPerGame.toFixed(1)}
-                </span>
-                <span className="stat-label">Avg Hours/Game</span>
               </div>
             </div>
           </div>
@@ -170,7 +160,7 @@ export default function EraDetail({ era, onClose }) {
           {/* Games list */}
           <div className="detail-section games-section">
             <h3 className="section-title">
-              Games in This Era ({games.length})
+              Achievements in This Era ({games.length})
             </h3>
             <div className="games-list">
               {sortedGames.map((game) => (
@@ -188,7 +178,7 @@ export default function EraDetail({ era, onClose }) {
                     )}
                   </div>
                   <div className="game-hours">
-                    {game.playtimeHours.toFixed(0)}h
+                    {game.achievements.length} 
                   </div>
                 </div>
               ))}
@@ -224,7 +214,7 @@ export default function EraDetail({ era, onClose }) {
                         )}
                       </div>
                       <a
-                        href={`https://steamcommunity.com/gid/${game.appid}`}
+                        href={`https://store.steampowered.com/app/${game.appid}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="similar-game-link"
