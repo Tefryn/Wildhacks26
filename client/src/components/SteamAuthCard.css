@@ -1,0 +1,188 @@
+.steam-auth-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 41, 59, 0.92) 55%, rgba(17, 24, 39, 0.98) 100%);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.35);
+  margin: 0 auto 28px;
+}
+
+.steam-auth-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(circle at top left, black 30%, transparent 100%);
+  pointer-events: none;
+}
+
+.steam-auth-glow {
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  filter: blur(28px);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.steam-auth-glow-left {
+  top: -110px;
+  left: -110px;
+  background: rgba(59, 130, 246, 0.55);
+}
+
+.steam-auth-glow-right {
+  right: -80px;
+  bottom: -90px;
+  background: rgba(139, 92, 246, 0.5);
+}
+
+.steam-auth-content {
+  position: relative;
+  z-index: 1;
+  padding: 28px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(240px, 0.8fr);
+  gap: 24px;
+  align-items: center;
+}
+
+.steam-auth-copy h2 {
+  margin: 10px 0 12px;
+  color: #f8fafc;
+  font-size: clamp(1.5rem, 2.5vw, 2.1rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.steam-auth-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.16);
+  border: 1px solid rgba(96, 165, 250, 0.24);
+}
+
+.steam-auth-copy p {
+  max-width: 56ch;
+  color: rgba(226, 232, 240, 0.84);
+  font-size: 0.98rem;
+  line-height: 1.7;
+}
+
+.steam-auth-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.steam-auth-primary,
+.steam-auth-secondary {
+  border: 0;
+  border-radius: 14px;
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease, color 180ms ease;
+  cursor: pointer;
+}
+
+.steam-auth-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #fff;
+  background: linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%);
+  padding: 14px 18px;
+  box-shadow: 0 16px 30px rgba(14, 165, 233, 0.28);
+}
+
+.steam-auth-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 20px 34px rgba(14, 165, 233, 0.34);
+}
+
+.steam-auth-secondary {
+  padding: 12px 16px;
+  color: #dbeafe;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.steam-auth-secondary:hover {
+  transform: translateY(-1px);
+  background: rgba(148, 163, 184, 0.18);
+}
+
+.steam-auth-button-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 0.92rem;
+}
+
+.steam-auth-note {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.steam-auth-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.62);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.steam-auth-pill-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(147, 197, 253, 0.8);
+}
+
+.steam-auth-pill-value {
+  font-size: 0.94rem;
+  color: #f8fafc;
+  word-break: break-all;
+}
+
+@media (max-width: 768px) {
+  .steam-auth-content {
+    grid-template-columns: 1fr;
+    padding: 22px;
+  }
+
+  .steam-auth-actions {
+    width: 100%;
+  }
+
+  .steam-auth-primary,
+  .steam-auth-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+}

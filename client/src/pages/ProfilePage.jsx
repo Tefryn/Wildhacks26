@@ -3,16 +3,18 @@
  */
 
 import { useNavigate } from 'react-router-dom';
+import { useSteamAuth } from '../hooks/useSteamAuth';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
+  const { steamId, isSignedIn, signInUrl, signOut, avatarUrl, displayName } = useSteamAuth();
 
   const profileData = {
-    username: 'SteamUser',
-    steamId: '76561198142089940',
+    username: displayName || 'SteamUser',
+    steamId: steamId || 'Not connected',
     joinDate: 'Member since January 2020',
-    profileImage: null, // Can be set from Steam API
+    profileImage: avatarUrl || null,
     stats: {
       totalGames: 142,
       totalHours: 1950,
@@ -95,10 +97,17 @@ export default function ProfilePage() {
             <span>Export Profile Data</span>
             <span className="arrow">→</span>
           </button>
-          <button className="settings-item logout">
-            <span>Sign Out</span>
-            <span className="arrow">→</span>
-          </button>
+          {isSignedIn ? (
+            <button className="settings-item logout" onClick={signOut}>
+              <span>Sign Out</span>
+              <span className="arrow">→</span>
+            </button>
+          ) : (
+            <a className="settings-item logout" href={signInUrl}>
+              <span>Connect Steam</span>
+              <span className="arrow">→</span>
+            </a>
+          )}
         </div>
       </div>
     </div>

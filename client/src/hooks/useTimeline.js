@@ -63,7 +63,10 @@ export function useTimeline(steamId = null, options = {}) {
   useEffect(() => {
     if (steamId) {
       getTimeline(steamId);
+      return;
     }
+
+    reset();
   }, [steamId]);
 
   return {

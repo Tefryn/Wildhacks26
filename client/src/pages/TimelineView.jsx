@@ -2,11 +2,13 @@
  * TimelineView Page - Main page for timeline visualization with enhanced hachathon UI
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Timeline from "../components/Timeline";
 import EraDetail from "../components/EraDetail";
 import GamingInsights from "../components/GamingInsights";
 import TopGamesChart from "../components/TopGamesChart";
+import SteamAuthCard from "../components/SteamAuthCard";
+import { useSteamAuth } from "../hooks/useSteamAuth";
 import { useTimeline } from "../hooks/useTimeline";
 import "./TimelineView.css";
 
@@ -14,12 +16,21 @@ import "./TimelineView.css";
  * TimelineView page component
  */
 export default function TimelineView() {
-  const [steamId, setSteamId] = useState("");
-  const [inputValue, setInputValue] = useState("");
+  const { steamId: authedSteamId, signOut, isSignedIn } = useSteamAuth();
+  const [manualSteamId, setManualSteamId] = useState("");
   const [selectedEraId, setSelectedEraId] = useState(null);
 
-  const { timeline, loading, error, getTimeline, refetch } =
-    useTimeline("76561198142089940");
+  const activeSteamId = authedSteamId || manualSteamId;
+
+  const { timeline, loading, error, getTimeline, refetch } = useTimeline(
+    activeSteamId,
+  );
+
+  useEffect(() => {
+    if (authedSteamId) {
+      setManualSteamId("");
+    }
+  }, [authedSteamId]);
 
   /**
    * Handle search submission
@@ -27,12 +38,12 @@ export default function TimelineView() {
   const handleSearch = async (e) => {
     e.preventDefault();
 
-    if (!inputValue.trim()) {
+    if (!manualSteamId.trim()) {
       alert("Please enter a Steam ID");
       return;
     }
 
-    setSteamId(inputValue.trim());
+    setManualSteamId(manualSteamId.trim());
     setSelectedEraId(null);
   };
 
@@ -46,21 +57,31 @@ export default function TimelineView() {
     <div className="timeline-view">
       {/* Header */}
       <div className="view-header">
-        <h1>🎮 Steam Gaming Timeline</h1>
+        <h1>Steam Gaming Timeline</h1>
         <p className="view-subtitle">
           Discover your gaming journey through time
         </p>
       </div>
 
+      <SteamAuthCard onConnect={() => setSelectedEraId(null)} />
+
       {/* Search section */}
       <div className="search-section">
         <form onSubmit={handleSearch} className="search-form">
+          <div className="search-label-row">
+            <span className="search-label">Manual fallback</span>
+            {isSignedIn && (
+              <button type="button" className="inline-link-button" onClick={signOut}>
+                Disconnect Steam
+              </button>
+            )}
+          </div>
           <div className="input-group">
             <input
               type="text"
               placeholder="Enter your Steam ID (or custom URL ID)"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              value={manualSteamId}
+              onChange={(e) => setManualSteamId(e.target.value)}
               className="steam-id-input"
               disabled={loading}
             />
@@ -68,7 +89,7 @@ export default function TimelineView() {
               {loading ? "Loading..." : "View Timeline"}
             </button>
           </div>
-          {steamId && (
+          {activeSteamId && (
             <button
               type="button"
               className="refresh-button"
@@ -82,8 +103,8 @@ export default function TimelineView() {
 
         {/* Example hint */}
         <p className="search-hint">
-          💡 Find your Steam ID: Visit your Steam profile, and copy the number
-          from the URL
+          Prefer Steam sign-in above. If you need to paste it manually, use the
+          17-digit SteamID64 from your profile URL.
         </p>
       </div>
 
@@ -136,9 +157,9 @@ export default function TimelineView() {
       {/* Default empty state */}
       {!timeline && !loading && !error && (
         <div className="empty-state">
-          <div className="empty-icon">🕐</div>
+          <div className="empty-icon">⌁</div>
           <h3>Your timeline awaits</h3>
-          <p>Enter your Steam ID above to visualize your gaming history</p>
+          <p>Sign in with Steam or enter a Steam ID above to visualize your gaming history</p>
         </div>
       )}
 

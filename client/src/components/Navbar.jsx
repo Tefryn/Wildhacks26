@@ -3,10 +3,13 @@
  */
 
 import { useNavigate } from "react-router-dom";
+import { useSteamAuth } from "../hooks/useSteamAuth";
 import "./Navbar.css";
 
 export default function Navbar({ profileImage = null }) {
   const navigate = useNavigate();
+  const { steamId, isSignedIn, signInUrl, signOut, avatarUrl, displayName } = useSteamAuth();
+  const resolvedProfileImage = avatarUrl || profileImage;
 
   return (
     <nav className="navbar">
@@ -19,13 +22,29 @@ export default function Navbar({ profileImage = null }) {
 
         {/* Profile Section */}
         <div className="navbar-profile">
+          <div className="navbar-auth">
+            {isSignedIn ? (
+              <>
+                <button className="steam-id-chip" type="button" onClick={() => navigate("/profile")}>
+                  {steamId.slice(0, 6)}…{steamId.slice(-4)}
+                </button>
+                <button className="navbar-signout" type="button" onClick={signOut}>
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <a className="navbar-signin" href={signInUrl}>
+                Connect Steam
+              </a>
+            )}
+          </div>
           <button
             className="profile-avatar"
             onClick={() => navigate("/profile")}
-            title="View Profile"
+            title={displayName ? `${displayName}'s profile` : "View Profile"}
           >
-            {profileImage ? (
-              <img src={profileImage} alt="Profile" className="profile-img" />
+            {resolvedProfileImage ? (
+              <img src={resolvedProfileImage} alt="Steam profile" className="profile-img" />
             ) : (
               <span className="profile-placeholder">👤</span>
             )}

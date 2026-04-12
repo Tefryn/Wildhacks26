@@ -121,6 +121,84 @@ export const getOwnedGames = onRequest({
   }
 });
 
+type PlayerSummary = {
+  steamid: string;
+  personaname?: string;
+  avatar?: string;
+  avatarmedium?: string;
+  avatarfull?: string;
+  profileurl?: string;
+  personastate?: number;
+};
+
+type GetPlayerSummariesResponse = {
+  response: {
+    players?: PlayerSummary[];
+  };
+};
+
+const fetchPlayerSummaries = async (
+  steamId: string,
+  key: string,
+): Promise<GetPlayerSummariesResponse> => {
+  try {
+    const params = new URLSearchParams();
+    params.set('key', key);
+    params.set('steamids', steamId);
+    params.set('format', 'json');
+
+    const url = `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?${params.toString()}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '<no body>');
+      const safeUrl = url.replace(/(key=)[^&]+/, '$1[REDACTED]');
+      console.error('fetchPlayerSummaries non-OK response', { status: res.status, url: safeUrl, body });
+      throw new Error(`HTTP ${res.status} ${res.statusText} - ${body}`);
+    }
+
+    const data = (await res.json()) as GetPlayerSummariesResponse;
+    return data;
+  } catch (err) {
+    console.error('fetchPlayerSummaries error', err);
+    throw err;
+  }
+};
+
+export const getPlayerSummaries = onRequest({
+  secrets: [myApiKey],
+}, async (req, res) => {
+  if (handleCors(req, res)) return;
+
+  try {
+    const steamId = req.query.steamId as string;
+    if (!steamId) {
+      res.status(400).send('Missing steamId parameter');
+      return;
+    }
+
+    const key = await myApiKey.value();
+    const data = await fetchPlayerSummaries(steamId, key);
+    const player = data.response.players?.[0] ?? null;
+
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(200).json({
+      steamId,
+      profile: player
+        ? {
+            steamId: player.steamid,
+            personaName: player.personaname ?? 'Steam User',
+            avatar: player.avatarfull ?? player.avatarmedium ?? player.avatar ?? '',
+            profileUrl: player.profileurl ?? '',
+            personaState: player.personastate ?? 0,
+          }
+        : null,
+    });
+  } catch (err) {
+    logger.error('getPlayerSummaries error', err);
+    res.status(500).send('Internal Server Error:' + err);
+  }
+});
+
 
 interface GameVec {
   appid: number;
