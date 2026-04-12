@@ -3,23 +3,41 @@ import { fetchSteamProfile } from "../api/steamApi";
 import {
   buildSteamOpenIdUrl,
   clearSteamAuthQuery,
-  extractSteamIdFromClaimed,
+  consumeSteamAuthReturnFromUrl,
 } from "../utils/steamOpenId";
 
 const STEAM_ID_STORAGE_KEY = "steamId";
 
-const readStoredSteamId = () => {
+const readStoredAuthState = () => {
   if (typeof window === "undefined") {
-    return "";
+    return { steamId: "" };
   }
 
-  return window.localStorage.getItem(STEAM_ID_STORAGE_KEY) || "";
+  return {
+    steamId: window.localStorage.getItem(STEAM_ID_STORAGE_KEY) || "",
+  };
+};
+
+const writeStoredAuthState = ({ steamId }) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(STEAM_ID_STORAGE_KEY, steamId);
+};
+
+const clearStoredAuthState = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(STEAM_ID_STORAGE_KEY);
 };
 
 export function useSteamAuth() {
-  const [steamId, setSteamId] = useState(() => readStoredSteamId());
+  const [authState, setAuthState] = useState(() => readStoredAuthState());
   const [profile, setProfile] = useState(null);
-  const [ready, setReady] = useState(false);
+  const { steamId } = authState;
 
   const signInUrl = useMemo(() => buildSteamOpenIdUrl(), []);
 
@@ -56,34 +74,31 @@ export function useSteamAuth() {
       return;
     }
 
-    const params = new URLSearchParams(window.location.search);
-    const claimed = params.get("openid.claimed_id");
-    const mode = params.get("openid.mode");
+    const syncAuthState = () => {
+      setAuthState(readStoredAuthState());
+    };
 
-    if (mode === "id_res" && claimed) {
-      const extractedSteamId = extractSteamIdFromClaimed(claimed);
+    const returnedSteamId = consumeSteamAuthReturnFromUrl();
 
-      if (extractedSteamId) {
-        window.localStorage.setItem(STEAM_ID_STORAGE_KEY, extractedSteamId);
-        setSteamId(extractedSteamId);
-        clearSteamAuthQuery();
-        window.dispatchEvent(new Event("steam-id-changed"));
-      }
+    if (returnedSteamId) {
+      writeStoredAuthState({ steamId: returnedSteamId });
+      syncAuthState();
+      clearSteamAuthQuery();
     }
 
     const handleStorage = (event) => {
       if (event.key === STEAM_ID_STORAGE_KEY) {
-        setSteamId(event.newValue || "");
+        syncAuthState();
       }
     };
 
     const handleSteamChange = () => {
-      setSteamId(readStoredSteamId());
+      syncAuthState();
     };
 
     window.addEventListener("storage", handleStorage);
     window.addEventListener("steam-id-changed", handleSteamChange);
-    setReady(true);
+    syncAuthState();
 
     return () => {
       window.removeEventListener("storage", handleStorage);
@@ -96,8 +111,8 @@ export function useSteamAuth() {
       return;
     }
 
-    window.localStorage.removeItem(STEAM_ID_STORAGE_KEY);
-    setSteamId("");
+    clearStoredAuthState();
+    setAuthState({ steamId: "" });
     window.dispatchEvent(new Event("steam-id-changed"));
   };
 
@@ -107,7 +122,6 @@ export function useSteamAuth() {
     avatarUrl: profile?.avatar || "",
     displayName: profile?.personaName || "",
     isSignedIn: Boolean(steamId),
-    ready,
     signInUrl,
     signOut,
   };

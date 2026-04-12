@@ -1,4 +1,5 @@
 const OPENID_ENDPOINT = "https://steamcommunity.com/openid/login";
+let steamAuthCallbackConsumed = false;
 
 const getCurrentReturnTo = () => {
   if (typeof window === "undefined") {
@@ -8,12 +9,20 @@ const getCurrentReturnTo = () => {
   return `${window.location.origin}${window.location.pathname}`;
 };
 
+const getCurrentRealm = () => {
+  if (typeof window === "undefined") {
+    return "/";
+  }
+
+  return `${window.location.origin}/`;
+};
+
 export const buildSteamOpenIdUrl = (returnTo, realm) => {
   const url = new URL(OPENID_ENDPOINT);
   url.searchParams.set("openid.ns", "http://specs.openid.net/auth/2.0");
   url.searchParams.set("openid.mode", "checkid_setup");
   url.searchParams.set("openid.return_to", returnTo || getCurrentReturnTo());
-  url.searchParams.set("openid.realm", realm || `${window.location.origin}/`);
+  url.searchParams.set("openid.realm", realm || getCurrentRealm());
   url.searchParams.set(
     "openid.identity",
     "http://specs.openid.net/auth/2.0/identifier_select",
@@ -53,4 +62,31 @@ export const clearSteamAuthQuery = () => {
   const nextUrl = new URL(window.location.href);
   nextUrl.search = "";
   window.history.replaceState({}, document.title, nextUrl.toString());
+};
+
+export const getSteamAuthReturnSteamId = (search) => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const params = new URLSearchParams(search || window.location.search);
+  if (params.get("openid.mode") !== "id_res") {
+    return null;
+  }
+
+  return extractSteamIdFromClaimed(params.get("openid.claimed_id"));
+};
+
+export const consumeSteamAuthReturnFromUrl = () => {
+  if (typeof window === "undefined" || steamAuthCallbackConsumed) {
+    return null;
+  }
+
+  const steamId = getSteamAuthReturnSteamId();
+  if (!steamId) {
+    return null;
+  }
+
+  steamAuthCallbackConsumed = true;
+  return steamId;
 };

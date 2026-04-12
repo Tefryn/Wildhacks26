@@ -16,15 +16,17 @@ import "./TimelineView.css";
  * TimelineView page component
  */
 export default function TimelineView() {
-  const { steamId: authedSteamId, signOut, isSignedIn } = useSteamAuth();
+  const {
+    steamId: authedSteamId,
+    signOut,
+    isSignedIn,
+  } = useSteamAuth();
   const [manualSteamId, setManualSteamId] = useState("");
   const [selectedEraId, setSelectedEraId] = useState(null);
 
   const activeSteamId = authedSteamId || manualSteamId;
 
-  const { timeline, loading, error, getTimeline, refetch } = useTimeline(
-    activeSteamId,
-  );
+  const { timeline, loading, error, refetch } = useTimeline(activeSteamId);
 
   useEffect(() => {
     if (authedSteamId) {
