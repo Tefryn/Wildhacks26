@@ -20,7 +20,8 @@ const db = getFirestore();
 
 // Cost control
 setGlobalOptions({ maxInstances: 10 });
-const myApiKey = defineSecret('STEAM_KEY');
+const steamKey = defineSecret('STEAM_KEY');
+const geminiKey = defineSecret('GEMINI_KEY');
 
 // Simple CORS helper: allow all origins for dev. If you want to restrict,
 // replace '*' with your origin like 'http://localhost:5174' or your hosting URL.
@@ -101,7 +102,7 @@ const fetchOwnedGames = async (
 };
 
 export const getOwnedGames = onRequest({
-  secrets: [myApiKey],
+  secrets: [steamKey],
 }, async (req, res) => {
   if (handleCors(req, res)) return;
   try {
@@ -110,13 +111,91 @@ export const getOwnedGames = onRequest({
       res.status(400).send('Missing steamId parameter');
       return;
     }
-    const key = await myApiKey.value();
+    const key = await steamKey.value();
     const data = await fetchOwnedGames(steamId, key);
     // Ensure CORS headers are present on the actual response as well
     res.set('Access-Control-Allow-Origin', '*');
     res.status(200).json(data);
   } catch (err) {
     logger.error('getOwnedGames error', err);
+    res.status(500).send('Internal Server Error:' + err);
+  }
+});
+
+type PlayerSummary = {
+  steamid: string;
+  personaname?: string;
+  avatar?: string;
+  avatarmedium?: string;
+  avatarfull?: string;
+  profileurl?: string;
+  personastate?: number;
+};
+
+type GetPlayerSummariesResponse = {
+  response: {
+    players?: PlayerSummary[];
+  };
+};
+
+const fetchPlayerSummaries = async (
+  steamId: string,
+  key: string,
+): Promise<GetPlayerSummariesResponse> => {
+  try {
+    const params = new URLSearchParams();
+    params.set('key', key);
+    params.set('steamids', steamId);
+    params.set('format', 'json');
+
+    const url = `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?${params.toString()}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '<no body>');
+      const safeUrl = url.replace(/(key=)[^&]+/, '$1[REDACTED]');
+      console.error('fetchPlayerSummaries non-OK response', { status: res.status, url: safeUrl, body });
+      throw new Error(`HTTP ${res.status} ${res.statusText} - ${body}`);
+    }
+
+    const data = (await res.json()) as GetPlayerSummariesResponse;
+    return data;
+  } catch (err) {
+    console.error('fetchPlayerSummaries error', err);
+    throw err;
+  }
+};
+
+export const getPlayerSummaries = onRequest({
+  secrets: [steamKey],
+}, async (req, res) => {
+  if (handleCors(req, res)) return;
+
+  try {
+    const steamId = req.query.steamId as string;
+    if (!steamId) {
+      res.status(400).send('Missing steamId parameter');
+      return;
+    }
+
+    const key = await steamKey.value();
+    const data = await fetchPlayerSummaries(steamId, key);
+    const player = data.response.players?.[0] ?? null;
+
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(200).json({
+      steamId,
+      profile: player
+        ? {
+            steamId: player.steamid,
+            personaName: player.personaname ?? 'Steam User',
+            avatar: player.avatarfull ?? player.avatarmedium ?? player.avatar ?? '',
+            profileUrl: player.profileurl ?? '',
+            personaState: player.personastate ?? 0,
+          }
+        : null,
+    });
+  } catch (err) {
+    logger.error('getPlayerSummaries error', err);
     res.status(500).send('Internal Server Error:' + err);
   }
 });
@@ -275,7 +354,7 @@ const fetchGlobalAchievementPercentages = async (
 };
 
 export const getGames = onRequest({
-  secrets: [myApiKey],
+  secrets: [steamKey],
 }, async (req: any, res: any) => {
   if (handleCors(req, res)) return;
 
@@ -288,7 +367,7 @@ export const getGames = onRequest({
 
     logger.info(`Fetching games for Steam ID: ${steamId}`);
 
-    const key = await myApiKey.value();
+    const key = await steamKey.value();
     const ownedGamesResponse = await fetchOwnedGames(steamId, key);
     const games = ownedGamesResponse.response.games ?? [];
 
@@ -361,3 +440,89 @@ export const getGames = onRequest({
   }
 });
 
+export const getAIResponse = onRequest({
+  secrets: [geminiKey],
+}, async (req: any, res: any) => {
+  if (handleCors(req, res)) return;
+
+  try {
+    const { eraId, eraName, games, achievements } = req.body;
+
+    // Validate required fields
+    if (!eraId || !eraName || !games || !achievements) {
+      res.status(400).json({ error: 'Missing required fields: eraId, eraName, games, achievements' });
+      return;
+    }
+
+    const key = await geminiKey.value();
+
+    // Build the era-specific gaming habit prompt
+    const gameList = games
+      .slice(0, 10)
+      .map((g: any) => `- ${g.name} (${g.achievements?.length || 0} achievements)`)
+      .join('\n');
+
+    const achievedCount = achievements.filter((a: any) => a.achieved).length;
+
+    const eraPrompt = `Analyze this gamer's ${eraName} era and write a quirky, fun, memorable description of their gaming habits during this period.
+
+Era: ${eraName}
+Total Games: ${games.length}
+Achievements Unlocked: ${achievedCount}
+
+Top Games Played:
+${gameList}
+
+Write a creative, personality-filled paragraph (2-3 sentences) that captures their gaming essence during this era. Be quirky, use humor, and make it memorable! Reference specific games if interesting. Highlight their playstyle (completionist, casual, speedrunner, achievement hunter, etc.).`;
+
+    const systemInstruction = `You are a witty gaming historian analyzing a player's gaming habits. Your responses should be:
+- Quirky and personality-filled (use humor and creative language)
+- Specific to their games and playstyle
+- Memorable and unique
+- 2-3 sentences that capture the essence of their gaming era
+- Avoid generic descriptions; reference specific games and habits when possible`;
+
+    const requestBody = {
+      contents: [{ parts: [{ text: eraPrompt }] }],
+      systemInstruction: {
+        parts: [{ text: systemInstruction }],
+      },
+    };
+
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      }
+    );
+
+    if (!geminiRes.ok) {
+      const body = await geminiRes.text().catch(() => '<no body>');
+      logger.error('Gemini API error', { status: geminiRes.status, body });
+      res.status(502).json({ error: `Gemini API error: ${geminiRes.status} - ${body}` });
+      return;
+    }
+
+    const geminiData = (await geminiRes.json()) as {
+      candidates?: Array<{
+        content?: {
+          parts?: Array<{ text?: string }>;
+        };
+      }>;
+    };
+
+    const quirkyInsight = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Unable to generate insight';
+
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(200).json({
+      eraId,
+      eraName,
+      insight: quirkyInsight
+    });
+  } catch (err) {
+    logger.error('getAIResponse error', err);
+    res.status(500).json({ error: `Internal Server Error: ${err}` });
+  }
+});

@@ -1,21 +1,20 @@
-import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import TimelineView from './pages/TimelineView';
+import ProfilePage from './pages/ProfilePage';
+import Navbar from './components/Navbar';
+import './App.css';
 
 function App() {
-  const [status, setStatus] = useState("Checking API...");
-
-  useEffect(() => {
-    fetch("/api/health")
-      .then((res) => res.json())
-      .then((data) => setStatus(data.message))
-      .catch(() => setStatus("Could not connect to API"));
-  }, []);
-
   return (
-    <main className="app">
-      <h1>Node + React Starter</h1>
-      <p>Backend status: {status}</p>
-      <p>Edit <code>client/src/App.jsx</code> to start building.</p>
-    </main>
+    <BrowserRouter>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<TimelineView />} />
+        <Route path="/timeline" element={<TimelineView />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

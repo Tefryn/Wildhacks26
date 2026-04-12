@@ -11,9 +11,8 @@ Features:
 4. Fun Metrics: Calculate additional fun metrics such as "Waste of Money" which is the amount of hours played divided by the cost of the game, "Library sentiment" how much a player has played a game compared to the rating on steam, as well as others. 
 
 Essentials:
-- ai api integration
-- redo table with more genres + more games + bigger weight on numeric features
 - final timeline
+- ai api integration
 - steam auth entry
 
 Extensions:
