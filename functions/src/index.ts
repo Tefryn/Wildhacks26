@@ -166,7 +166,7 @@ const fetchPlayerSummaries = async (
 };
 
 export const getPlayerSummaries = onRequest({
-  secrets: [myApiKey],
+  secrets: [steamKey],
 }, async (req, res) => {
   if (handleCors(req, res)) return;
 
@@ -177,7 +177,7 @@ export const getPlayerSummaries = onRequest({
       return;
     }
 
-    const key = await myApiKey.value();
+    const key = await steamKey.value();
     const data = await fetchPlayerSummaries(steamId, key);
     const player = data.response.players?.[0] ?? null;
 
@@ -446,37 +446,48 @@ export const getAIResponse = onRequest({
   if (handleCors(req, res)) return;
 
   try {
-    const { prompt, data, systemInstruction, responseSchema } = req.body;
+    const { eraId, eraName, games, achievements } = req.body;
 
-    if (!prompt) {
-      res.status(400).json({ error: 'Missing prompt in request body' });
+    // Validate required fields
+    if (!eraId || !eraName || !games || !achievements) {
+      res.status(400).json({ error: 'Missing required fields: eraId, eraName, games, achievements' });
       return;
     }
 
     const key = await geminiKey.value();
 
-    const userMessage = data
-      ? `${prompt}\n\nContext data:\n${JSON.stringify(data, null, 2)}`
-      : prompt;
+    // Build the era-specific gaming habit prompt
+    const gameList = games
+      .slice(0, 10)
+      .map((g: any) => `- ${g.name} (${g.achievements?.length || 0} achievements)`)
+      .join('\n');
 
-    const requestBody: any = {
-      contents: [{ parts: [{ text: userMessage }] }],
-    };
+    const achievedCount = achievements.filter((a: any) => a.achieved).length;
 
-    // Attach system instruction if provided
-    if (systemInstruction) {
-      requestBody.systemInstruction = {
+    const eraPrompt = `Analyze this gamer's ${eraName} era and write a quirky, fun, memorable description of their gaming habits during this period.
+
+Era: ${eraName}
+Total Games: ${games.length}
+Achievements Unlocked: ${achievedCount}
+
+Top Games Played:
+${gameList}
+
+Write a creative, personality-filled paragraph (2-3 sentences) that captures their gaming essence during this era. Be quirky, use humor, and make it memorable! Reference specific games if interesting. Highlight their playstyle (completionist, casual, speedrunner, achievement hunter, etc.).`;
+
+    const systemInstruction = `You are a witty gaming historian analyzing a player's gaming habits. Your responses should be:
+- Quirky and personality-filled (use humor and creative language)
+- Specific to their games and playstyle
+- Memorable and unique
+- 2-3 sentences that capture the essence of their gaming era
+- Avoid generic descriptions; reference specific games and habits when possible`;
+
+    const requestBody = {
+      contents: [{ parts: [{ text: eraPrompt }] }],
+      systemInstruction: {
         parts: [{ text: systemInstruction }],
-      };
-    }
-
-    // Attach response schema if provided
-    if (responseSchema) {
-      requestBody.generationConfig = {
-        responseMimeType: 'application/json',
-        responseSchema,
-      };
-    }
+      },
+    };
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
@@ -494,7 +505,7 @@ export const getAIResponse = onRequest({
       return;
     }
 
-    const geminiData = await geminiRes.json() as {
+    const geminiData = (await geminiRes.json()) as {
       candidates?: Array<{
         content?: {
           parts?: Array<{ text?: string }>;
@@ -502,14 +513,14 @@ export const getAIResponse = onRequest({
       }>;
     };
 
-    const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-
-    // Parse JSON if schema was requested, otherwise return raw text
-    const output = responseSchema ? JSON.parse(rawText) : rawText;
+    const quirkyInsight = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Unable to generate insight';
 
     res.set('Access-Control-Allow-Origin', '*');
-    res.status(200).json({ output });
-
+    res.status(200).json({
+      eraId,
+      eraName,
+      insight: quirkyInsight
+    });
   } catch (err) {
     logger.error('getAIResponse error', err);
     res.status(500).json({ error: `Internal Server Error: ${err}` });

@@ -12,6 +12,8 @@ import { useSteamAuth } from "../hooks/useSteamAuth";
 import { useTimeline } from "../hooks/useTimeline";
 import "./TimelineView.css";
 
+const AI_ENDPOINT_URL = "https://getairesponse-e4wyzyxcia-uc.a.run.app"
+
 /**
  * TimelineView page component
  */
@@ -23,6 +25,7 @@ export default function TimelineView() {
   } = useSteamAuth();
   const [manualSteamId, setManualSteamId] = useState("");
   const [selectedEraId, setSelectedEraId] = useState(null);
+  const [aiResponses, setAiResponses] = useState({}); // Store AI responses by eraId
 
   const activeSteamId = authedSteamId || manualSteamId;
 
@@ -33,6 +36,50 @@ export default function TimelineView() {
       setManualSteamId("");
     }
   }, [authedSteamId]);
+
+  /**
+   * Handle era selection with AI response caching
+   */
+  const handleEraSelect = async (eraId) => {
+    setSelectedEraId(eraId);
+
+    // Check if we already have an AI response for this era
+    if (aiResponses[eraId]) {
+      return;
+    }
+
+    // Find the selected era
+    const era = timeline?.eras?.find((e) => e.eraId === eraId);
+    if (!era) return;
+
+    try {
+      // Call getAIResponse with era information
+      const response = await fetch(AI_ENDPOINT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eraId: era.eraId,
+          eraName: era.eraName,
+          games: era.games,
+          achievements: era.achievements,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Store the AI response locally
+      setAiResponses((prev) => ({
+        ...prev,
+        [eraId]: data,
+      }));
+    } catch (err) {
+      console.error("Error fetching AI response for era:", err);
+    }
+  };
 
   /**
    * Handle search submission
@@ -150,7 +197,7 @@ export default function TimelineView() {
             <Timeline
               eras={timeline.eras || []}
               selectedEraId={selectedEraId}
-              onEraSelect={setSelectedEraId}
+              onEraSelect={handleEraSelect}
             />
           </div>
         </div>
