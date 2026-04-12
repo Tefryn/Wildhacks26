@@ -2,7 +2,7 @@
  * EraCard Component - Individual era card in the timeline
  */
 
-import "./EraCard.css";
+import './EraCard.css';
 
 /**
  * EraCard component
@@ -13,12 +13,12 @@ import "./EraCard.css";
  * @param {Function} props.onClick - Click handler
  */
 export default function EraCard({ era, isSelected, isHovered, onClick }) {
-  const { name, year, season, stats, dominantGenres, topGames, dateRange } =
-    era;
+  const { name, year, season, stats, dominantGenres, topGames, dateRange } = era;
+  const topGamePreview = (topGames || []).slice(0, 2);
 
   return (
     <div
-      className={`era-card ${isSelected ? "selected" : ""} ${isHovered ? "hovered" : ""}`}
+      className={`era-card ${isSelected ? 'selected' : ''} ${isHovered ? 'hovered' : ''}`}
       onClick={onClick}
     >
       {/* Era header */}
@@ -37,8 +37,8 @@ export default function EraCard({ era, isSelected, isHovered, onClick }) {
       {/* Stats */}
       <div className="era-stats">
         <div className="stat">
-          <span className="stat-number">{stats.totalHours.toFixed(0)}</span>
-          <span className="stat-label">hours</span>
+          <span className="stat-number">{stats.achievementCount ?? 0}</span>
+          <span className="stat-label">achievements</span>
         </div>
         <div className="stat">
           <span className="stat-number">{stats.gameCount}</span>
@@ -58,18 +58,26 @@ export default function EraCard({ era, isSelected, isHovered, onClick }) {
       )}
 
       {/* Top games preview */}
-      {topGames.length > 0 && (
-        <div className="top-games">
-          <p className="top-games-label">Top Game</p>
-          <p className="top-game-name">{topGames[0].name}</p>
-          <p className="top-game-hours">
-            {topGames[0].playtimeHours.toFixed(0)}h
-          </p>
+      {topGamePreview.length > 0 && (
+        <div className="era-achievement-preview">
+          <p className="achievement-preview-label">Top Games</p>
+          <div className="achievement-preview-list">
+            {topGamePreview.map((game) => (
+              <div key={game.appId} className="achievement-preview-item">
+                <p className="achievement-preview-game">{game.name}</p>
+                <p className="achievement-preview-count">
+                  {game.achievements?.length || 0}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {/* Hover hint */}
-      {!isSelected && <div className="era-hint">Click to view details</div>}
+      {!isSelected && (
+        <div className="era-hint">Click to view details</div>
+      )}
     </div>
   );
 }

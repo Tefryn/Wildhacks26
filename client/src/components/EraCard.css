@@ -148,38 +148,53 @@
   color: white;
 }
 
-/* Top games preview */
-.top-games {
+/* Achievement preview */
+.era-achievement-preview {
   padding: 10px;
   background: #f8f9fa;
   border-radius: 8px;
   margin-bottom: 8px;
 }
 
-.top-games-label {
+.achievement-preview-label {
   font-size: 0.65rem;
   color: #999;
   text-transform: uppercase;
   font-weight: 600;
-  margin: 0 0 4px 0;
+  margin: 0 0 8px 0;
   letter-spacing: 0.5px;
 }
 
-.top-game-name {
-  font-size: 0.85rem;
+.achievement-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.achievement-preview-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.achievement-preview-game {
+  font-size: 0.83rem;
   font-weight: 600;
   color: #1a1a1a;
-  margin: 0 0 2px 0;
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.top-game-hours {
-  font-size: 0.75rem;
+.achievement-preview-count {
+  font-size: 0.8rem;
   color: #6366f1;
   font-weight: 700;
   margin: 0;
+  min-width: 24px;
+  text-align: right;
 }
 
 /* Hover hint */
