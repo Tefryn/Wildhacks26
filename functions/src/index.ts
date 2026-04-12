@@ -20,7 +20,8 @@ const db = getFirestore();
 
 // Cost control
 setGlobalOptions({ maxInstances: 10 });
-const myApiKey = defineSecret('STEAM_KEY');
+const steamKey = defineSecret('STEAM_KEY');
+const geminiKey = defineSecret('GEMINI_KEY');
 
 // Simple CORS helper: allow all origins for dev. If you want to restrict,
 // replace '*' with your origin like 'http://localhost:5174' or your hosting URL.
@@ -101,7 +102,7 @@ const fetchOwnedGames = async (
 };
 
 export const getOwnedGames = onRequest({
-  secrets: [myApiKey],
+  secrets: [steamKey],
 }, async (req, res) => {
   if (handleCors(req, res)) return;
   try {
@@ -110,7 +111,7 @@ export const getOwnedGames = onRequest({
       res.status(400).send('Missing steamId parameter');
       return;
     }
-    const key = await myApiKey.value();
+    const key = await steamKey.value();
     const data = await fetchOwnedGames(steamId, key);
     // Ensure CORS headers are present on the actual response as well
     res.set('Access-Control-Allow-Origin', '*');
@@ -353,7 +354,7 @@ const fetchGlobalAchievementPercentages = async (
 };
 
 export const getGames = onRequest({
-  secrets: [myApiKey],
+  secrets: [steamKey],
 }, async (req: any, res: any) => {
   if (handleCors(req, res)) return;
 
@@ -366,7 +367,7 @@ export const getGames = onRequest({
 
     logger.info(`Fetching games for Steam ID: ${steamId}`);
 
-    const key = await myApiKey.value();
+    const key = await steamKey.value();
     const ownedGamesResponse = await fetchOwnedGames(steamId, key);
     const games = ownedGamesResponse.response.games ?? [];
 
@@ -439,3 +440,78 @@ export const getGames = onRequest({
   }
 });
 
+export const getAIResponse = onRequest({
+  secrets: [geminiKey],
+}, async (req: any, res: any) => {
+  if (handleCors(req, res)) return;
+
+  try {
+    const { prompt, data, systemInstruction, responseSchema } = req.body;
+
+    if (!prompt) {
+      res.status(400).json({ error: 'Missing prompt in request body' });
+      return;
+    }
+
+    const key = await geminiKey.value();
+
+    const userMessage = data
+      ? `${prompt}\n\nContext data:\n${JSON.stringify(data, null, 2)}`
+      : prompt;
+
+    const requestBody: any = {
+      contents: [{ parts: [{ text: userMessage }] }],
+    };
+
+    // Attach system instruction if provided
+    if (systemInstruction) {
+      requestBody.systemInstruction = {
+        parts: [{ text: systemInstruction }],
+      };
+    }
+
+    // Attach response schema if provided
+    if (responseSchema) {
+      requestBody.generationConfig = {
+        responseMimeType: 'application/json',
+        responseSchema,
+      };
+    }
+
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      }
+    );
+
+    if (!geminiRes.ok) {
+      const body = await geminiRes.text().catch(() => '<no body>');
+      logger.error('Gemini API error', { status: geminiRes.status, body });
+      res.status(502).json({ error: `Gemini API error: ${geminiRes.status} - ${body}` });
+      return;
+    }
+
+    const geminiData = await geminiRes.json() as {
+      candidates?: Array<{
+        content?: {
+          parts?: Array<{ text?: string }>;
+        };
+      }>;
+    };
+
+    const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+
+    // Parse JSON if schema was requested, otherwise return raw text
+    const output = responseSchema ? JSON.parse(rawText) : rawText;
+
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(200).json({ output });
+
+  } catch (err) {
+    logger.error('getAIResponse error', err);
+    res.status(500).json({ error: `Internal Server Error: ${err}` });
+  }
+});
