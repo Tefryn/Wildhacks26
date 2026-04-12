@@ -141,10 +141,13 @@ const recommend = (
   
   return table
     .filter((g) => g.appid !== seedAppid)
-    .map((g) => ({
-      ...g,
-      similarity: cosineSimilarity(seed.featureVector, g.featureVector),
-    }))
+    .map((g) => {
+      const numericSimilarity = cosineSimilarity(seed.featureVector.slice(0, 3), g.featureVector.slice(0, 3));
+      const tagSimilarity = cosineSimilarity(seed.featureVector.slice(3), g.featureVector.slice(3));
+
+      const finalScore = 0.8 * tagSimilarity + 0.2 * numericSimilarity;
+      return { ...g, similarity: finalScore}
+    })
     .sort((a, b) => (b.similarity || 0) - (a.similarity || 0))
     .slice(0, topN);
 };
@@ -182,7 +185,7 @@ export const getSimilarGames = onRequest({
         appid: parseInt(doc.id, 10),
         featureVector: data.featureVector || [],
         ...data,
-      } as GameVec; // Fuck Shit
+      } as GameVec;
     });
 
     // Use content-similarity to get recommendations
