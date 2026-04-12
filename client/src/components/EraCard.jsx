@@ -2,7 +2,7 @@
  * EraCard Component - Individual era card in the timeline
  */
 
-import './EraCard.css';
+import "./EraCard.css";
 
 /**
  * EraCard component
@@ -13,11 +13,12 @@ import './EraCard.css';
  * @param {Function} props.onClick - Click handler
  */
 export default function EraCard({ era, isSelected, isHovered, onClick }) {
-  const { name, year, season, stats, dominantGenres, topGames, dateRange } = era;
+  const { name, year, season, stats, dominantGenres, topGames, dateRange } =
+    era;
 
   return (
     <div
-      className={`era-card ${isSelected ? 'selected' : ''} ${isHovered ? 'hovered' : ''}`}
+      className={`era-card ${isSelected ? "selected" : ""} ${isHovered ? "hovered" : ""}`}
       onClick={onClick}
     >
       {/* Era header */}
@@ -61,14 +62,14 @@ export default function EraCard({ era, isSelected, isHovered, onClick }) {
         <div className="top-games">
           <p className="top-games-label">Top Game</p>
           <p className="top-game-name">{topGames[0].name}</p>
-          <p className="top-game-hours">{topGames[0].playtimeHours.toFixed(0)}h</p>
+          <p className="top-game-hours">
+            {topGames[0].playtimeHours.toFixed(0)}h
+          </p>
         </div>
       )}
 
       {/* Hover hint */}
-      {!isSelected && (
-        <div className="era-hint">Click to view details</div>
-      )}
+      {!isSelected && <div className="era-hint">Click to view details</div>}
     </div>
   );
 }

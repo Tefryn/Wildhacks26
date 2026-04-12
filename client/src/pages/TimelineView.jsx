@@ -26,9 +26,7 @@ const readStoredManualSteamId = () => {
  * TimelineView page component
  */
 export default function TimelineView() {
-  const {
-    steamId: authedSteamId,
-  } = useSteamAuth();
+  const { steamId: authedSteamId, signOut, isSignedIn } = useSteamAuth();
   const [manualSteamId, setManualSteamId] = useState(() => readStoredManualSteamId());
   const [selectedEraId, setSelectedEraId] = useState(null);
   const [aiResponses, setAiResponses] = useState({}); // Store AI responses by eraId
@@ -143,10 +141,10 @@ export default function TimelineView() {
       {timeline && !loading && !error && (
         <div className="timeline-section">
           {/* Gaming Insights - Player Profile & Achievements */}
-          <GamingInsights
+          {/* <GamingInsights
             timeline={timeline.timeline}
             eras={timeline.eras || []}
-          />
+          /> */}
 
           {/* Top Games Chart */}
           {timeline.eras?.[0]?.games && (
@@ -170,7 +168,10 @@ export default function TimelineView() {
         <div className="empty-state">
           <div className="empty-icon">⌁</div>
           <h3>Your timeline awaits</h3>
-          <p>Sign in with Steam or enter a Steam ID above to visualize your gaming history</p>
+          <p>
+            Sign in with Steam or enter a Steam ID above to visualize your
+            gaming history
+          </p>
         </div>
       )}
 
