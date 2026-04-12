@@ -16,11 +16,7 @@ import "./TimelineView.css";
  * TimelineView page component
  */
 export default function TimelineView() {
-  const {
-    steamId: authedSteamId,
-    signOut,
-    isSignedIn,
-  } = useSteamAuth();
+  const { steamId: authedSteamId, signOut, isSignedIn } = useSteamAuth();
   const [manualSteamId, setManualSteamId] = useState("");
   const [selectedEraId, setSelectedEraId] = useState(null);
 
@@ -73,7 +69,11 @@ export default function TimelineView() {
           <div className="search-label-row">
             <span className="search-label">Manual fallback</span>
             {isSignedIn && (
-              <button type="button" className="inline-link-button" onClick={signOut}>
+              <button
+                type="button"
+                className="inline-link-button"
+                onClick={signOut}
+              >
                 Disconnect Steam
               </button>
             )}
@@ -134,10 +134,10 @@ export default function TimelineView() {
       {timeline && !loading && !error && (
         <div className="timeline-section">
           {/* Gaming Insights - Player Profile & Achievements */}
-          <GamingInsights
+          {/* <GamingInsights
             timeline={timeline.timeline}
             eras={timeline.eras || []}
-          />
+          /> */}
 
           {/* Top Games Chart */}
           {timeline.eras?.[0]?.games && (
@@ -161,7 +161,10 @@ export default function TimelineView() {
         <div className="empty-state">
           <div className="empty-icon">⌁</div>
           <h3>Your timeline awaits</h3>
-          <p>Sign in with Steam or enter a Steam ID above to visualize your gaming history</p>
+          <p>
+            Sign in with Steam or enter a Steam ID above to visualize your
+            gaming history
+          </p>
         </div>
       )}
 

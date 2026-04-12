@@ -107,6 +107,9 @@ export default function EraDetail({ era, onClose }) {
         className="era-detail-container"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Year Backdrop */}
+        <div className="year-backdrop">{year}</div>
+
         {/* Header */}
         <div className="detail-header">
           <div className="header-content">
