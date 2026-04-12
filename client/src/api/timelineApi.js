@@ -268,8 +268,36 @@ export async function fetchTimeline(steamId, options = {}) {
       throw new Error(data.error);
     }
 
-    console.log(data);
+    // console.log(data);
     const bucketizedData = bucketizeTimelineData(data);
+
+    const data_for_similarity = bucketizedData.eras.reduce((acc, era) => {
+      const eraGames = Array.isArray(era?.games) ? era.games : [];
+      if (eraGames.length === 0) return acc;
+
+      const topGame = [...eraGames].sort((left, right) => {
+        const leftCount = Array.isArray(left?.achievements)
+          ? left.achievements.length
+          : 0;
+        const rightCount = Array.isArray(right?.achievements)
+          ? right.achievements.length
+          : 0;
+        if (rightCount !== leftCount) return rightCount - leftCount;
+        return (
+          (Number(right?.playtimeHours) || 0) -
+          (Number(left?.playtimeHours) || 0)
+        );
+      })[0];
+
+      if (!topGame) return acc;
+
+      const label = era.eraId.toLowerCase();
+      acc[label] = Number(topGame.appId) || null;
+
+      return acc;
+    }, {});
+
+    console.log(data_for_similarity);
 
     console.log(bucketizedData);
 
