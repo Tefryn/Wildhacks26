@@ -11,7 +11,6 @@ import { setGlobalOptions } from "firebase-functions";
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { defineSecret } from 'firebase-functions/params';
-import { recommend, type Game } from "./utilities/content-similarity";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
@@ -150,6 +149,41 @@ export const getPlayerSummaries = onRequest({
  * Fetches the 10 most similar games to a given game
  * using content-based filtering with cosine similarity
  */
+interface Game {
+  appid: number;
+  featureVector: number[];
+  similarity?: number;
+  [key: string]: any;
+}
+
+const cosineSimilarity = (a: number[], b: number[]): number => {
+  const dot = a.reduce((sum, ai, i) => sum + ai * b[i], 0);
+  const magA = Math.sqrt(a.reduce((sum, ai) => sum + ai * ai, 0));
+  const magB = Math.sqrt(b.reduce((sum, bi) => sum + bi * bi, 0));
+  return dot / (magA * magB || 1);
+};
+
+// Given a seed game, rank all others by similarity
+const recommend = (
+  seedAppid: number,
+  table: Game[],
+  topN: number = 10
+): Game[] => {
+  const seed = table.find((g) => g.appid === seedAppid);
+  if (!seed) {
+    throw new Error(`Game with appid ${seedAppid} not found in table`);
+  }
+  
+  return table
+    .filter((g) => g.appid !== seedAppid)
+    .map((g) => ({
+      ...g,
+      similarity: cosineSimilarity(seed.featureVector, g.featureVector),
+    }))
+    .sort((a, b) => (b.similarity || 0) - (a.similarity || 0))
+    .slice(0, topN);
+};
+
 export const getSimilarGames = onRequest({
   maxInstances: 5,
 }, async (req: any, res: any) => {
@@ -166,10 +200,9 @@ export const getSimilarGames = onRequest({
 
     logger.info(`Getting ${topN} similar games for appid: ${appid}`);
 
-    // Fetch all games from Firestore with embeddings
     const gamesSnapshot = await db
-      .collection('steam_games')
-      .select('app_id', 'featureVector', 'name', 'tags', 'genres')
+      .collection("games")
+      .select('app_id', 'featureVector', 'name')
       .get();
 
     if (gamesSnapshot.empty) {
@@ -198,8 +231,6 @@ export const getSimilarGames = onRequest({
       similarGames: similarGames.map((g) => ({
         appid: g.appid,
         name: g.name,
-        tags: g.tags,
-        genres: g.genres,
         similarity: g.similarity,
       })),
     });
