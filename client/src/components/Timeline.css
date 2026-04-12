@@ -277,9 +277,9 @@
 
 /* Footer statistics */
 .timeline-footer {
-  margin-top: 60px;
-  padding-top: 40px;
-  border-top: 2px solid rgba(99, 102, 241, 0.1);
+  margin-bottom: 40px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid rgba(99, 102, 241, 0.1);
 }
 
 .stats-grid {

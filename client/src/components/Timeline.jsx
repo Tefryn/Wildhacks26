@@ -19,7 +19,7 @@ export default function Timeline({ eras = [], onEraSelect, selectedEraId }) {
   if (!eras || eras.length === 0) {
     return (
       <div className="timeline-empty">
-        <div className="empty-icon">⌁</div>
+        <div className="empty-icon">~</div>
         <p>No gaming events found. Try a different Steam ID.</p>
       </div>
     );
@@ -58,11 +58,45 @@ export default function Timeline({ eras = [], onEraSelect, selectedEraId }) {
       {/* Modern header */}
       <div className="timeline-header">
         <div className="header-content">
-          <h2 className="timeline-title">Your Gaming Journey</h2>
+          <h2 className="timeline-title">Steam Dex Journey</h2>
           <p className="timeline-subtitle">
             A chronological series of gaming events from {eras[0]?.year} to{" "}
             {eras[eras.length - 1]?.year}
           </p>
+        </div>
+      </div>
+
+      {/* Timeline statistics */}
+      <div className="timeline-footer">
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-icon">⏱️</div>
+            <div className="stat-content">
+              <div className="stat-label">Total Hours Played</div>
+              <div className="stat-value">{totalHours.toFixed(0)}</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">🎮</div>
+            <div className="stat-content">
+              <div className="stat-label">Unique Games</div>
+              <div className="stat-value">{totalGames}</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">🏆</div>
+            <div className="stat-content">
+              <div className="stat-label">Achievements</div>
+              <div className="stat-value">{totalAchievements}</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">📅</div>
+            <div className="stat-content">
+              <div className="stat-label">Gaming Eras</div>
+              <div className="stat-value">{eras.length}</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -147,40 +181,6 @@ export default function Timeline({ eras = [], onEraSelect, selectedEraId }) {
               </div>
             );
           })}
-        </div>
-      </div>
-
-      {/* Timeline statistics */}
-      <div className="timeline-footer">
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-icon">⏱️</div>
-            <div className="stat-content">
-              <div className="stat-label">Total Hours Played</div>
-              <div className="stat-value">{totalHours.toFixed(0)}</div>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon">🎮</div>
-            <div className="stat-content">
-              <div className="stat-label">Unique Games</div>
-              <div className="stat-value">{totalGames}</div>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon">🏆</div>
-            <div className="stat-content">
-              <div className="stat-label">Achievements</div>
-              <div className="stat-value">{totalAchievements}</div>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon">📅</div>
-            <div className="stat-content">
-              <div className="stat-label">Gaming Eras</div>
-              <div className="stat-value">{eras.length}</div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

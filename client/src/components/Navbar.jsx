@@ -61,7 +61,7 @@ export default function Navbar({ profileImage = null }) {
         {/* App Name/Logo */}
         <div className="navbar-brand" onClick={() => navigate("/")}>
           <span className="navbar-icon">🎮</span>
-          <h1 className="navbar-title">Gaming Timeline</h1>
+          <h1 className="navbar-title">Steam Dex</h1>
         </div>
 
         {!isSignedIn && (

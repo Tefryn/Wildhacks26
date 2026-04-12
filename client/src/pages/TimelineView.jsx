@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import Timeline from "../components/Timeline";
 import EraDetail from "../components/EraDetail";
 import GamingInsights from "../components/GamingInsights";
-import TopGamesChart from "../components/TopGamesChart";
 import { useSteamAuth } from "../hooks/useSteamAuth";
 import { useTimeline } from "../hooks/useTimeline";
 import "./TimelineView.css";
@@ -111,7 +110,7 @@ export default function TimelineView() {
     <div className="timeline-view">
       {/* Header */}
       <div className="view-header">
-        <h1>Steam Gaming Timeline</h1>
+        <h1>Steam Dex</h1>
         <p className="view-subtitle">
           Discover your gaming journey through time
         </p>
@@ -146,14 +145,9 @@ export default function TimelineView() {
             eras={timeline.eras || []}
           /> */}
 
-          {/* Top Games Chart */}
-          {timeline.eras?.[0]?.games && (
-            <TopGamesChart games={timeline.eras[0].games} />
-          )}
-
           {/* Timeline visualization */}
           <div className="timeline-wrapper">
-            <h3 className="timeline-title">📅 Your Gaming Timeline</h3>
+            <h3 className="timeline-title">📅 Steam Dex Timeline</h3>
             <Timeline
               eras={timeline.eras || []}
               selectedEraId={selectedEraId}
@@ -166,7 +160,7 @@ export default function TimelineView() {
       {/* Default empty state */}
       {!timeline && !loading && !error && (
         <div className="empty-state">
-          <div className="empty-icon">⌁</div>
+          <div className="empty-icon">~</div>
           <h3>Your timeline awaits</h3>
           <p>
             Sign in with Steam or enter a Steam ID above to visualize your
