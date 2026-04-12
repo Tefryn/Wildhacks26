@@ -297,7 +297,7 @@ export async function fetchTimeline(steamId, options = {}) {
       return acc;
     }, {});
 
-    console.log(data_for_similarity);
+    // console.log(data_for_similarity);
 
     console.log(bucketizedData);
 
@@ -309,3 +309,32 @@ export async function fetchTimeline(steamId, options = {}) {
 }
 
 export { bucketizeTimelineData };
+
+export async function getSimilarGames(appId) {
+  if (!appId) {
+    console.error("appId is required");
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      "https://getsimilargames-e4wyzyxcia-uc.a.run.app?appid=" + appId,
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(
+        "Similar games API error:",
+        errorData.error || `HTTP ${response.status}`,
+      );
+      return null;
+    }
+
+    const result = await response.json();
+    console.log("Similar games result:", result);
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch similar games:", error);
+    return null;
+  }
+}
