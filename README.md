@@ -1,30 +1,36 @@
 # SteamDex
-## Authors: Eiko Reisz, Connor King, Piyush Sonawane, Yash Yeole
-## Date: 4/11/2026
 
-# Brainstorming
+SteamDex turns your Steam history into a story.
 
-Get information about a users gaming habits and provide a story and insights/suggestions
+Instead of showing only raw stats, SteamDex organizes your games and achievements into "eras" so you can see how your play style changed over time.
 
-1. List of games played - last played, time played (hours), achievements, genres & tags?
-2. Library of games (including unplayed)
-3. Friends list (id)
+## What You Can Do
 
-Story
-1. Group games by genre and time period to create eras 
-    - Games that were played - (how many hours/achievements)
+- View a timeline of your gaming eras.
+- Explore top games, playtime, and achievements by era.
+- Get fun AI-generated writeups about your habits during each period.
+- Discover similar games based on your favorite titles.
 
-2. Recommendations
-    - Recommend from previously played but unfinished 
-    - Recommend from existing library
-    - Recommend from store (stuff on sale?, games coming out in future)
-    - Look into player count, see what is popular
+## How To Use The Site
 
-3. Profile user?
+1. Enter your Steam Web API key when prompted.
+2. Connect your Steam account (or enter a Steam ID).
+3. Browse your timeline and click into an era for details.
+4. Update your API key anytime from the Profile page settings.
 
-4. Technical Feature Ideas
-The "Price-Per-Hour" Metric: A fun (or depressing) stat showing which games gave them the most value for their money.
+## Privacy Notes
 
-Library Sentiment: If you can pull Steam Review data, show the user how their "Personal Rating" (playtime) compares to the "Global Rating."
+- Your Steam API key is stored locally in your browser for this site experience.
+- You can clear or replace the key at any time from Profile settings.
+- SteamDex reads your Steam data to generate visualizations and insights.
 
-Milestone Notifications: Send a "Happy Anniversary" ping when it's been exactly five years since they first launched their favorite game.
+## Built At WildHacks 2026
+
+Team:
+- Eiko Reisz
+- Connor King
+- Piyush Sonawane
+- Yash Yeole
+
+## One last note
+The current version requires a API key to be submitted by users, since it is not being maintained. The submitted version did not require this, as the key was a Firebase Secret.
