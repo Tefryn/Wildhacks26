@@ -2,18 +2,51 @@
  * ProfilePage Component - User profile page
  */
 
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSteamAuth } from '../hooks/useSteamAuth';
+import {
+  clearStoredSteamApiKey,
+  getStoredSteamApiKey,
+  setStoredSteamApiKey,
+} from '../utils/steamApiKey';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { steamId, isSignedIn, signInUrl, signOut, avatarUrl, displayName } = useSteamAuth();
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [apiKeyStatus, setApiKeyStatus] = useState('');
+
+  const currentApiKey = getStoredSteamApiKey();
+
+  useEffect(() => {
+    setApiKeyStatus('');
+  }, [currentApiKey]);
+
+  const handleApiKeySave = (event) => {
+    event.preventDefault();
+    const nextKey = apiKeyInput.trim();
+
+    if (!nextKey) {
+      setApiKeyStatus('Enter a Steam API key to save.');
+      return;
+    }
+
+    setStoredSteamApiKey(nextKey);
+    setApiKeyInput('');
+    setApiKeyStatus('Steam API key updated.');
+  };
+
+  const handleApiKeyClear = () => {
+    clearStoredSteamApiKey();
+    setApiKeyInput('');
+    setApiKeyStatus('Steam API key cleared. Enter a new key to continue.');
+  };
 
   const profileData = {
     username: displayName || 'SteamUser',
     steamId: steamId || 'Not connected',
-    joinDate: 'Member since January 2020',
     profileImage: avatarUrl || null,
     stats: {
       totalGames: 142,
@@ -42,7 +75,6 @@ export default function ProfilePage() {
         <div className="profile-info">
           <h1 className="profile-username">{profileData.username}</h1>
           <p className="profile-steamid">Steam ID: {profileData.steamId}</p>
-          <p className="profile-joindate">{profileData.joinDate}</p>
         </div>
       </div>
 
@@ -89,6 +121,31 @@ export default function ProfilePage() {
       <div className="profile-section">
         <h2 className="section-title">Settings</h2>
         <div className="settings-list">
+          <div className="api-key-settings">
+            <p className="api-key-label">Steam API Key</p>
+            <p className="api-key-hint">
+              Current key: {currentApiKey ? 'Saved' : 'Not set'}
+            </p>
+            <form className="api-key-inline-form" onSubmit={handleApiKeySave}>
+              <input
+                className="api-key-input"
+                type="password"
+                autoComplete="off"
+                placeholder="Paste new Steam API key"
+                value={apiKeyInput}
+                onChange={(event) => setApiKeyInput(event.target.value)}
+              />
+              <button className="settings-item" type="submit">
+                <span>Update API Key</span>
+                <span className="arrow">→</span>
+              </button>
+            </form>
+            <button className="settings-item" type="button" onClick={handleApiKeyClear}>
+              <span>Clear API Key</span>
+              <span className="arrow">→</span>
+            </button>
+            {apiKeyStatus && <p className="api-key-status">{apiKeyStatus}</p>}
+          </div>
           <button className="settings-item">
             <span>Privacy Settings</span>
             <span className="arrow">→</span>

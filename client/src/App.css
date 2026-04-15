@@ -71,3 +71,64 @@ body {
   outline: 2px solid #6366f1;
   outline-offset: 2px;
 }
+
+.api-key-gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.api-key-gate-card {
+  width: min(560px, 100%);
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+}
+
+.api-key-gate-card h1 {
+  font-size: clamp(1.8rem, 2.8vw, 2.4rem);
+  margin-bottom: 10px;
+}
+
+.api-key-gate-card p {
+  color: #334155;
+  line-height: 1.5;
+}
+
+.api-key-form {
+  margin-top: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.api-key-form label {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.api-key-form input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #0f172a;
+}
+
+.api-key-form button {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #2563eb, #4338ca);
+  color: #fff;
+}
+
+.api-key-error {
+  color: #b91c1c;
+  font-size: 0.9rem;
+}

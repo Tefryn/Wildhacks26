@@ -10,7 +10,7 @@
 import { setGlobalOptions } from "firebase-functions";
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
-import { defineSecret } from 'firebase-functions/params';
+//import { defineSecret } from 'firebase-functions/params';
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
@@ -20,8 +20,7 @@ const db = getFirestore();
 
 // Cost control
 setGlobalOptions({ maxInstances: 10 });
-const steamKey = defineSecret('STEAM_KEY');
-const geminiKey = defineSecret('GEMINI_KEY');
+//const geminiKey = defineSecret('GEMINI_KEY');
 
 // Simple CORS helper: allow all origins for dev. If you want to restrict,
 // replace '*' with your origin like 'http://localhost:5174' or your hosting URL.
@@ -36,6 +35,12 @@ const handleCors = (req: any, res: any) => {
     return true;
   }
   return false;
+};
+
+const getSteamApiKeyFromRequest = (req: any): string => {
+  const queryKey = typeof req?.query?.apiKey === 'string' ? req.query.apiKey : '';
+  const bodyKey = typeof req?.body?.apiKey === 'string' ? req.body.apiKey : '';
+  return (queryKey || bodyKey).trim();
 };
 
 // Response shape for GetOwnedGames when include_appinfo=1
@@ -101,18 +106,20 @@ const fetchOwnedGames = async (
   }
 };
 
-export const getOwnedGames = onRequest({
-  secrets: [steamKey],
-}, async (req, res) => {
+export const getOwnedGames = onRequest(async (req, res) => {
   if (handleCors(req, res)) return;
   try {
     const steamId = req.query.steamId as string;
+    const apiKey = getSteamApiKeyFromRequest(req);
     if (!steamId) {
       res.status(400).send('Missing steamId parameter');
       return;
     }
-    const key = await steamKey.value();
-    const data = await fetchOwnedGames(steamId, key);
+    if (!apiKey) {
+      res.status(400).json({ error: 'Missing apiKey parameter' });
+      return;
+    }
+    const data = await fetchOwnedGames(steamId, apiKey);
     // Ensure CORS headers are present on the actual response as well
     res.set('Access-Control-Allow-Origin', '*');
     res.status(200).json(data);
@@ -165,20 +172,22 @@ const fetchPlayerSummaries = async (
   }
 };
 
-export const getPlayerSummaries = onRequest({
-  secrets: [steamKey],
-}, async (req, res) => {
+export const getPlayerSummaries = onRequest(async (req, res) => {
   if (handleCors(req, res)) return;
 
   try {
     const steamId = req.query.steamId as string;
+    const apiKey = getSteamApiKeyFromRequest(req);
     if (!steamId) {
       res.status(400).send('Missing steamId parameter');
       return;
     }
+    if (!apiKey) {
+      res.status(400).json({ error: 'Missing apiKey parameter' });
+      return;
+    }
 
-    const key = await steamKey.value();
-    const data = await fetchPlayerSummaries(steamId, key);
+    const data = await fetchPlayerSummaries(steamId, apiKey);
     const player = data.response.players?.[0] ?? null;
 
     res.set('Access-Control-Allow-Origin', '*');
@@ -353,22 +362,24 @@ const fetchGlobalAchievementPercentages = async (
   return result;
 };
 
-export const getGames = onRequest({
-  secrets: [steamKey],
-}, async (req: any, res: any) => {
+export const getGames = onRequest(async (req: any, res: any) => {
   if (handleCors(req, res)) return;
 
   try {
     const steamId = req.query.steamId as string;
+    const apiKey = getSteamApiKeyFromRequest(req);
     if (!steamId) {
       res.status(400).json({ error: 'Missing steamId parameter' });
+      return;
+    }
+    if (!apiKey) {
+      res.status(400).json({ error: 'Missing apiKey parameter' });
       return;
     }
 
     logger.info(`Fetching games for Steam ID: ${steamId}`);
 
-    const key = await steamKey.value();
-    const ownedGamesResponse = await fetchOwnedGames(steamId, key);
+    const ownedGamesResponse = await fetchOwnedGames(steamId, apiKey);
     const games = ownedGamesResponse.response.games ?? [];
 
     logger.info(`Found ${games.length} games for user`);
@@ -379,7 +390,7 @@ export const getGames = onRequest({
       games.map(async (game) => {
         try {
           const [achievements, globalPercentages] = await Promise.all([
-            fetchPlayerAchievements(steamId, game.appid, key),
+            fetchPlayerAchievements(steamId, game.appid, apiKey),
             fetchGlobalAchievementPercentages(game.appid),
           ]);
 
@@ -440,93 +451,93 @@ export const getGames = onRequest({
   }
 });
 
-export const getAIResponse = onRequest({
-  secrets: [geminiKey],
-}, async (req: any, res: any) => {
-  if (handleCors(req, res)) return;
+// export const getAIResponse = onRequest({
+//   secrets: [geminiKey],
+// }, async (req: any, res: any) => {
+//   if (handleCors(req, res)) return;
 
 
-  try {
-    const { eraId, eraName, games, achievements } = req.body;
+//   try {
+//     const { eraId, eraName, games, achievements } = req.body;
 
-    // Validate required fields
-    if (!eraId || !eraName || !games || !achievements) {
-      res.status(400).json({ error: 'Missing required fields: eraId, eraName, games, achievements' });
-      return;
-    }
+//     // Validate required fields
+//     if (!eraId || !eraName || !games || !achievements) {
+//       res.status(400).json({ error: 'Missing required fields: eraId, eraName, games, achievements' });
+//       return;
+//     }
 
-    const key = await geminiKey.value();
+//     const key = await geminiKey.value();
 
-    // Build the era-specific gaming habit prompt
-    const gameList = games
-      .slice(0, 10)
-      .map((g: any) => `- ${g.name} (${g.achievements?.length || 0} achievements)`)
-      .join('\n');
+//     // Build the era-specific gaming habit prompt
+//     const gameList = games
+//       .slice(0, 10)
+//       .map((g: any) => `- ${g.name} (${g.achievements?.length || 0} achievements)`)
+//       .join('\n');
 
-    const achievedCount = achievements.filter((a: any) => a.achieved).length;
+//     const achievedCount = achievements.filter((a: any) => a.achieved).length;
 
-    const eraPrompt = `Analyze this gamer's ${eraName} era and write a quirky, fun, memorable description of their gaming habits during this period.
+//     const eraPrompt = `Analyze this gamer's ${eraName} era and write a quirky, fun, memorable description of their gaming habits during this period.
 
-Era: ${eraName}
-Total Games: ${games.length}
-Achievements Unlocked: ${achievedCount}
+// Era: ${eraName}
+// Total Games: ${games.length}
+// Achievements Unlocked: ${achievedCount}
 
-Top Games Played:
-${gameList}
+// Top Games Played:
+// ${gameList}
 
-Write a creative, personality-filled paragraph (2-3 sentences) that captures their gaming essence during this era. Be quirky, use humor, and make it memorable! Reference specific games if interesting. Highlight their playstyle (completionist, casual, speedrunner, achievement hunter, etc.).`;
+// Write a creative, personality-filled paragraph (2-3 sentences) that captures their gaming essence during this era. Be quirky, use humor, and make it memorable! Reference specific games if interesting. Highlight their playstyle (completionist, casual, speedrunner, achievement hunter, etc.).`;
 
-    const systemInstruction = `You are a witty gaming historian analyzing a player's gaming habits. Your responses should be:
-- Quirky and personality-filled (use humor and creative language)
-- Specific to their games and playstyle
-- Memorable and unique
-- 2-3 sentences that capture the essence of their gaming era
-- Avoid generic descriptions; reference specific games and habits when possible`;
+//     const systemInstruction = `You are a witty gaming historian analyzing a player's gaming habits. Your responses should be:
+// - Quirky and personality-filled (use humor and creative language)
+// - Specific to their games and playstyle
+// - Memorable and unique
+// - 2-3 sentences that capture the essence of their gaming era
+// - Avoid generic descriptions; reference specific games and habits when possible`;
 
-    const requestBody = {
-      contents: [{ parts: [{ text: eraPrompt }] }],
-      systemInstruction: {
-        parts: [{ text: systemInstruction }],
-      },
-    };
+//     const requestBody = {
+//       contents: [{ parts: [{ text: eraPrompt }] }],
+//       systemInstruction: {
+//         parts: [{ text: systemInstruction }],
+//       },
+//     };
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      }
-    );
+//     const geminiRes = await fetch(
+//       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+//       {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify(requestBody),
+//       }
+//     );
 
-    if (!geminiRes.ok) {
-      const body = await geminiRes.text().catch(() => '<no body>');
-      logger.error('Gemini API error', { status: geminiRes.status, body });
-      res.status(502).json({ error: `Gemini API error: ${geminiRes.status} - ${body}` });
-      return;
-    }
+//     if (!geminiRes.ok) {
+//       const body = await geminiRes.text().catch(() => '<no body>');
+//       logger.error('Gemini API error', { status: geminiRes.status, body });
+//       res.status(502).json({ error: `Gemini API error: ${geminiRes.status} - ${body}` });
+//       return;
+//     }
 
-    const geminiData = (await geminiRes.json()) as {
-      candidates?: Array<{
-        content?: {
-          parts?: Array<{ text?: string }>;
-        };
-      }>;
-    };
+//     const geminiData = (await geminiRes.json()) as {
+//       candidates?: Array<{
+//         content?: {
+//           parts?: Array<{ text?: string }>;
+//         };
+//       }>;
+//     };
 
-    const quirkyInsight = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Unable to generate insight';
+//     const quirkyInsight = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Unable to generate insight';
 
-    res.set('Access-Control-Allow-Origin', '*');
-    res.status(200).json({
-      eraId,
-      eraName,
-      insight: quirkyInsight
-    });
-  } catch (err) {
-    logger.error('getAIResponse error', err);
-    res.status(500).json({ error: `Internal Server Error: ${err}` });
-  }
-});
+//     res.set('Access-Control-Allow-Origin', '*');
+//     res.status(200).json({
+//       eraId,
+//       eraName,
+//       insight: quirkyInsight
+//     });
+//   } catch (err) {
+//     logger.error('getAIResponse error', err);
+//     res.status(500).json({ error: `Internal Server Error: ${err}` });
+//   }
+// });
 
 /**
  * Get Game Details - Proxy to Steam API to bypass CORS restrictions

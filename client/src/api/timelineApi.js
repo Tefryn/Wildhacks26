@@ -1,6 +1,7 @@
 /**
  * Timeline API - Frontend API calls for timeline data
  */
+import { getStoredSteamApiKey } from "../utils/steamApiKey";
 
 const DEFAULT_TIMELINE_URL = "https://getGames-e4wyzyxcia-uc.a.run.app";
 
@@ -271,8 +272,14 @@ function bucketizeTimelineData(data) {
   };
 }
 export async function fetchTimeline(steamId, options = {}) {
+  const apiKey = (options.apiKey || getStoredSteamApiKey() || "").trim();
+  if (!apiKey) {
+    throw new Error("Steam API key is required");
+  }
+
   const url = new URL(options.url || DEFAULT_TIMELINE_URL);
   url.searchParams.set("steamId", steamId);
+  url.searchParams.set("apiKey", apiKey);
 
   if (options.maxGames) {
     url.searchParams.set("maxGames", String(options.maxGames));
